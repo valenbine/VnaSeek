@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="基于 Chordino 风格 chroma 模型的浏览器端音乐和弦识别 Web 应用"
+    />
+    <title>Chordino Web 和弦识别</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="app-title">
+        <div class="hero__content">
+          <p class="eyebrow">Chordino-style Chord Recognition</p>
+          <h1 id="app-title">把音乐上传，立即得到和弦时间轴</h1>
+          <p class="hero__copy">
+            优先由后端调用 sonic-annotator 加载原生 Vamp Chordino 插件，输出可下载的和弦时间轴；后端不可用时自动回退到浏览器端分析。
+          </p>
+          <div class="hero__badges" aria-label="功能特点">
+            <span>Native Vamp</span>
+            <span>sonic-annotator</span>
+            <span>Chord Timeline</span>
+          </div>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="orb orb--green"></div>
+          <div class="orb orb--blue"></div>
+          <div class="wave-card">
+            <svg viewBox="0 0 360 160" role="img">
+              <path d="M16 93 C52 54 76 52 110 92 S178 131 218 78 S294 35 344 86" />
+              <path d="M16 116 C56 80 92 72 134 110 S214 126 246 91 S300 65 344 102" />
+              <path d="M16 68 C50 30 88 40 120 70 S178 104 218 52 S302 28 344 60" />
+            </svg>
+            <div class="wave-card__chord">Cmaj7</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="和弦识别工作台">
+        <form class="upload-card" id="upload-form">
+          <div class="upload-card__header">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v11m0-11 4 4m-4-4-4 4M4 15v3a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3" />
+            </svg>
+            <div>
+              <h2>上传音频</h2>
+              <p>支持浏览器可解码的 mp3、wav、m4a、ogg 等格式。</p>
+            </div>
+          </div>
+
+          <label class="drop-zone" for="audio-file" id="drop-zone">
+            <input id="audio-file" type="file" accept="audio/*" />
+            <span class="drop-zone__title">选择或拖放音频文件</span>
+            <span class="drop-zone__hint">建议上传 10 秒到 5 分钟的清晰音乐片段</span>
+          </label>
+
+          <div class="file-meta" id="file-meta" hidden></div>
+
+          <button class="primary-action" type="submit" id="analyze-button" disabled>
+            开始识别和弦
+          </button>
+        </form>
+
+        <div class="analysis-card">
+          <div class="analysis-card__topline">
+            <div>
+              <p class="eyebrow">Recognition Status</p>
+              <h2 id="status-title">等待音频</h2>
+            </div>
+            <span class="status-pill" id="status-pill">Idle</span>
+          </div>
+          <p class="status-copy" id="status-copy">
+            上传文件后，应用会调用原生 Chordino 插件输出主要和弦与时间段；如果后端依赖缺失，会提示并使用浏览器端回退模型。
+          </p>
+          <div class="progress" aria-label="识别进度">
+            <span id="progress-bar"></span>
+          </div>
+
+          <div class="summary-grid" aria-label="识别摘要">
+            <div>
+              <span class="metric" id="main-chord">--</span>
+              <span class="metric-label">主要和弦</span>
+            </div>
+            <div>
+              <span class="metric" id="chord-count">--</span>
+              <span class="metric-label">小节数量</span>
+            </div>
+            <div>
+              <span class="metric" id="duration">0:00</span>
+              <span class="metric-label">音频时长</span>
+            </div>
+            <div>
+              <span class="metric" id="song-key">--</span>
+              <span class="metric-label">调性</span>
+            </div>
+            <div>
+              <span class="metric" id="song-bpm">--</span>
+              <span class="metric-label">BPM</span>
+            </div>
+            <div>
+              <span class="metric" id="time-signature">--</span>
+              <span class="metric-label">拍号</span>
+            </div>
+          </div>
+
+          <div class="metadata-panel" aria-label="歌曲元数据来源">
+            <div>
+              <span class="metadata-panel__label">歌曲识别</span>
+              <strong id="song-identity">等待文件名解析</strong>
+            </div>
+            <p id="metadata-note">完成和弦识别后，会使用 librosa 分析调性和 BPM，并优先用 Essentia 增强拍号估算。</p>
+            <div class="source-list" id="source-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="results" aria-labelledby="results-title">
+        <div class="section-heading">
+          <p class="eyebrow">Results</p>
+          <h2 id="results-title">识别结果</h2>
+        </div>
+
+        <div class="visualizer-card">
+          <div class="visualizer-card__header">
+            <h3>Chroma 能量分布</h3>
+            <p>越高表示该音级在整段音频中越显著。</p>
+          </div>
+          <canvas id="chroma-canvas" width="960" height="260" aria-label="Chroma 能量柱状图"></canvas>
+        </div>
+
+        <div class="timeline-card">
+          <div class="timeline-card__header">
+            <h3>和弦时间轴</h3>
+            <button class="secondary-action" id="download-button" type="button" disabled>
+              下载 JSON
+            </button>
+          </div>
+
+          <div class="transport" aria-label="音乐播放走带条">
+            <audio id="audio-player" preload="metadata"></audio>
+            <div class="transport__controls">
+              <button class="play-action" id="play-button" type="button" disabled>
+                播放
+              </button>
+              <span class="transport__time" id="playback-time">0:00 / 0:00</span>
+              <div class="transpose-controls" aria-label="走带条和弦移调">
+                <button id="transpose-down" type="button" aria-label="降低一个半音">-</button>
+                <span id="transpose-label">原调</span>
+                <button id="transpose-up" type="button" aria-label="升高一个半音">+</button>
+                <button id="transpose-reset" type="button">重置</button>
+              </div>
+            </div>
+            <div class="transport__sliders" aria-label="走带条显示控制">
+              <label>
+                <span>和弦缩放</span>
+                <input id="zoom-slider" type="range" min="1" max="40" step="0.25" value="1" />
+              </label>
+              <label>
+                <span>播放进度</span>
+                <input id="viewport-slider" type="range" min="0" max="100" step="0.1" value="0" disabled />
+              </label>
+            </div>
+            <div class="current-chord" aria-live="polite">
+              <span>当前和弦</span>
+              <strong id="current-chord">--</strong>
+            </div>
+            <div
+              class="tape-strip"
+              id="tape-strip"
+              role="slider"
+              aria-label="播放位置"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              tabindex="0"
+            >
+              <div class="tape-strip__empty">识别完成后显示和弦走带条</div>
+              <canvas id="tape-canvas" width="1600" height="150" aria-label="和弦、节拍与小节走带条"></canvas>
+              <div class="tape-tooltip" id="tape-tooltip" hidden></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "beat-analyzer",
+  "version": "1.0.0",
+  "description": "Beat This! based beat tracking web application",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "formidable": "^3.5.4"
+  }
+}

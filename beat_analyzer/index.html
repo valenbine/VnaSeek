@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="基于 Beat This! 模型的浏览器端音乐节拍检测 Web 应用，精确分析 beats 和 downbeats 并以时间轴展示"
+    />
+    <title>Beat Analyzer 节拍检测</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="app-title">
+        <div class="hero__content">
+          <p class="eyebrow">Beat This! Beat Tracking</p>
+          <h1 id="app-title">上传音乐，立即得到节拍时间轴</h1>
+          <p class="hero__copy">
+            基于深度学习模型 (ISMIR 2024) 精确检测音频中的 beats 和 downbeats，以可视化时间轴展示分析结果。
+          </p>
+          <div class="hero__badges" aria-label="功能特点">
+            <span>Deep Learning</span>
+            <span>Beats & Downbeats</span>
+            <span>Timeline</span>
+          </div>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="orb orb--green"></div>
+          <div class="orb orb--purple"></div>
+          <div class="beat-card">
+            <div class="beat-visual">
+              <div class="beat-bar"></div>
+              <div class="beat-bar"></div>
+              <div class="beat-bar beat-bar--downbeat"></div>
+              <div class="beat-bar"></div>
+              <div class="beat-bar"></div>
+              <div class="beat-bar beat-bar--downbeat"></div>
+              <div class="beat-bar"></div>
+              <div class="beat-bar"></div>
+            </div>
+            <div class="beat-info">
+              <span class="beat-label">BEAT</span>
+              <span class="beat-label beat-label--downbeat">DOWNBEAT</span>
+            </div>
+            <div class="bpm-display">120 BPM</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="节拍检测工作台">
+        <form class="upload-card" id="upload-form">
+          <div class="upload-card__header">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+            </svg>
+            <div>
+              <h2>上传音频</h2>
+              <p>支持 mp3、wav、m4a、ogg 等常见音频格式。</p>
+            </div>
+          </div>
+
+          <label class="drop-zone" for="audio-file" id="drop-zone">
+            <input id="audio-file" type="file" accept="audio/*" />
+            <span class="drop-zone__title">选择或拖放音频文件</span>
+            <span class="drop-zone__hint">建议上传 10 秒到 5 分钟的清晰音乐片段</span>
+          </label>
+
+          <div class="file-meta" id="file-meta" hidden></div>
+
+          <button class="primary-action" type="submit" id="analyze-button" disabled>
+            开始检测节拍
+          </button>
+        </form>
+
+        <div class="analysis-card">
+          <div class="analysis-card__topline">
+            <div>
+              <p class="eyebrow">Analysis Status</p>
+              <h2 id="status-title">等待音频</h2>
+            </div>
+            <span class="status-pill" id="status-pill">Idle</span>
+          </div>
+          <p class="status-copy" id="status-copy">
+            上传音频文件后，系统将使用 Beat This! 深度学习模型分析音频并检测 beats 和 downbeats 时间戳。
+          </p>
+          <div class="progress" aria-label="检测进度">
+            <span id="progress-bar"></span>
+          </div>
+
+          <div class="summary-grid" aria-label="检测摘要">
+            <div>
+              <span class="metric" id="beat-count">--</span>
+              <span class="metric-label">Beats</span>
+            </div>
+            <div>
+              <span class="metric" id="downbeat-count">--</span>
+              <span class="metric-label">Downbeats</span>
+            </div>
+            <div>
+              <span class="metric" id="duration">0:00</span>
+              <span class="metric-label">音频时长</span>
+            </div>
+            <div>
+              <span class="metric" id="bpm">--</span>
+              <span class="metric-label">BPM</span>
+            </div>
+            <div>
+              <span class="metric" id="first-beat">--</span>
+              <span class="metric-label">首 Beat</span>
+            </div>
+            <div>
+              <span class="metric" id="first-downbeat">--</span>
+              <span class="metric-label">首 Downbeat</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="results" aria-labelledby="results-title">
+        <div class="section-heading">
+          <p class="eyebrow">Results</p>
+          <h2 id="results-title">检测结果</h2>
+        </div>
+
+        <div class="timeline-card">
+          <div class="timeline-card__header">
+            <h3>节拍时间轴</h3>
+            <div class="timeline-actions">
+              <button class="secondary-action" id="download-json-button" type="button" disabled>
+                下载 JSON
+              </button>
+              <button class="secondary-action" id="download-beats-button" type="button" disabled>
+                下载 .beats
+              </button>
+            </div>
+          </div>
+
+          <div class="transport" aria-label="音乐播放走带条">
+            <audio id="audio-player" preload="metadata"></audio>
+            <div class="transport__controls">
+              <button class="play-action" id="play-button" type="button" disabled>
+                播放
+              </button>
+              <span class="transport__time" id="playback-time">0:00 / 0:00</span>
+            </div>
+            <div class="transport__sliders" aria-label="走带条显示控制">
+              <label>
+                <span>缩放</span>
+                <input id="zoom-slider" type="range" min="1" max="40" step="0.25" value="1" />
+              </label>
+              <label>
+                <span>播放进度</span>
+                <input id="viewport-slider" type="range" min="0" max="100" step="0.1" value="0" disabled />
+              </label>
+            </div>
+            <div class="current-beat" aria-live="polite">
+              <span>当前</span>
+              <strong id="current-beat">--</strong>
+              <span id="beat-type"></span>
+            </div>
+            <div
+              class="tape-strip"
+              id="tape-strip"
+              role="slider"
+              aria-label="播放位置"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              tabindex="0"
+            >
+              <div class="tape-strip__empty">检测完成后显示节拍时间轴</div>
+              <canvas id="tape-canvas" width="1600" height="150" aria-label="节拍与 downbeat 时间轴"></canvas>
+              <div class="tape-tooltip" id="tape-tooltip" hidden></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="beat-list-card">
+          <div class="beat-list-header">
+            <h3>节拍列表</h3>
+            <span id="beat-list-count"></span>
+          </div>
+          <div class="beat-list" id="beat-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
