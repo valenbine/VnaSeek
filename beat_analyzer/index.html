@@ -23,7 +23,7 @@
           <p class="eyebrow">BeatThis! inspired · yt-dlp · you-get</p>
           <h1 id="app-title">VNASeek视频解析</h1>
           <p class="hero__copy">
-            输入公开视频页面地址，解析视频、音频、封面、描述和字幕。大文件优先由浏览器直连源站下载，必要时通过后端边拉边传，不在服务器持久化保存。
+            输入可匿名访问的视频页面地址，解析视频、音频、封面、描述和字幕。VNASeek视频解析不收集登录 cookie，大文件优先由浏览器直连源站下载，必要时通过后端边拉边传。
           </p>
           <div class="hero__badges" aria-label="功能特点">
             <span>URL Parser</span>
@@ -71,14 +71,14 @@
             </svg>
             <div>
               <h2>粘贴视频地址</h2>
-              <p>支持 yt-dlp / you-get 可解析的公开站点。请仅下载你有权访问的内容。</p>
+              <p>支持 yt-dlp / you-get 可匿名解析的公开站点。不会收集或使用平台登录 cookie。</p>
             </div>
           </div>
 
           <label class="drop-zone url-zone" for="video-url" id="url-zone">
-            <input id="video-url" type="url" placeholder="https://example.com/watch?v=..." autocomplete="url" required />
+            <textarea id="video-url" placeholder="https://example.com/watch?v=..." autocomplete="url" rows="5" required></textarea>
             <span class="drop-zone__title">输入公开视频页面 URL</span>
-            <span class="drop-zone__hint">后端只解析元信息，不预下载大文件。</span>
+            <span class="drop-zone__hint">仅支持无需登录态的链接；后端只解析元信息，不预下载大文件。</span>
           </label>
 
           <button class="primary-action" type="submit" id="parse-button">开始解析</button>
@@ -93,7 +93,7 @@
             <span class="status-pill" id="status-pill">Idle</span>
           </div>
           <p class="status-copy" id="status-copy">
-            解析后会展示可用格式、字幕和封面。大文件下载不会落盘保存到服务器。
+            解析后会展示可用格式、字幕和封面。若源站要求登录 cookie 或平台校验，系统会提示匿名解析不可用。
           </p>
           <div class="progress" aria-label="解析进度">
             <span id="progress-bar"></span>

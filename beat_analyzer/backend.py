@@ -231,6 +231,29 @@ def extract_with_you_get(target_url: str) -> dict[str, Any]:
     }
 
 
+def classify_parse_failure(yt_error: Exception, you_get_error: Exception) -> str:
+    details = f"yt-dlp: {yt_error}; you-get: {you_get_error}"
+    lower_details = details.lower()
+
+    if "http error 412" in lower_details or "precondition failed" in lower_details:
+        return (
+            "解析失败：源站拒绝了当前解析请求（HTTP 412 Precondition Failed）。"
+            "这通常表示该链接需要登录 cookie、源站页面上下文或平台校验。"
+            "VNASeek视频解析不会收集 cookie，也不会绕过平台访问控制或反机器人策略；"
+            "请改用无需登录态即可公开访问的链接。"
+        )
+    if "login" in lower_details or "sign in" in lower_details or "需要登录" in details:
+        return "解析失败：该链接需要登录 cookie 或授权访问。VNASeek视频解析不会收集平台 cookie，请使用公开匿名可访问的视频链接。"
+    if "copyright" in lower_details or "private" in lower_details or "forbidden" in lower_details:
+        return "解析失败：该视频不可公开访问或受到源站限制。"
+    if "unsupported url" in lower_details or "unsupported" in lower_details:
+        return "解析失败：当前链接暂不受 yt-dlp 或 you-get 支持。"
+    if "timed out" in lower_details or "timeout" in lower_details:
+        return "解析失败：连接源站超时，请稍后重试。"
+
+    return f"解析失败：{details}"
+
+
 def create_stream_token(
     url: str,
     headers: dict[str, str] | None,
@@ -296,7 +319,7 @@ async def parse_video(request: ParseRequest) -> dict[str, Any]:
         except Exception as you_get_error:
             raise HTTPException(
                 status_code=422,
-                detail=f"解析失败：yt-dlp: {yt_error}; you-get: {you_get_error}",
+                detail=classify_parse_failure(yt_error, you_get_error),
             ) from you_get_error
 
     response = {key: value for key, value in normalized.items() if key not in {"httpHeaders", "createdAt"}}

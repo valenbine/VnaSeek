@@ -26,11 +26,11 @@ checkHealth();
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const targetUrl = urlInput.value.trim();
+  const targetUrl = urlInput.value.split(/\s+/).find(Boolean) || "";
   if (!targetUrl) return;
 
   setBusy(true);
-  setStatus("正在解析", "Parsing", "正在使用 yt-dlp 获取视频元信息，失败时会尝试 you-get。", 40);
+  setStatus("正在解析", "Parsing", "正在使用 yt-dlp 获取视频元信息，失败时会尝试 you-get；不会读取或收集平台 cookie。", 40);
   resetResult();
 
   try {
@@ -95,7 +95,7 @@ async function checkHealth() {
     const response = await fetch("/api/health");
     const health = await response.json();
     if (health.ok) {
-      const detail = health.ytDlpAvailable ? health.message : "服务已启动，但 yt-dlp Python 依赖未安装。";
+      const detail = health.ytDlpAvailable ? `${health.message}。Cookie-Free 模式，仅支持匿名可访问链接。` : "服务已启动，但 yt-dlp Python 依赖未安装。";
       setStatus("服务就绪", "Ready", detail, 0, !health.ytDlpAvailable);
       return;
     }

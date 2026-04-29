@@ -383,7 +383,7 @@ h3 {
   transform: translateY(-2px);
 }
 
-.drop-zone input {
+.drop-zone input[type="file"] {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -747,8 +747,9 @@ button:disabled {
   text-align: left;
 }
 
-.url-zone input {
+.url-zone textarea {
   width: 100%;
+  min-height: 132px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background:
@@ -756,9 +757,10 @@ button:disabled {
     rgba(8, 8, 20, 0.72);
   color: var(--text);
   padding: 16px 18px;
+  resize: vertical;
 }
 
-.url-zone input::placeholder {
+.url-zone textarea::placeholder {
   color: rgba(184, 192, 217, 0.62);
 }
 

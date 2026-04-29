@@ -61,3 +61,20 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 项目展示名称统一使用 `VNASeek视频解析`。
   - npm 包名使用兼容格式 `vnaseek-video-parser`。
+
+[URL 输入控件偏好]
+- Date: 2026-04-29
+- Context: 用户反馈粘贴地址控件无法粘贴且应为多行文本框
+- Instructions:
+  - 视频地址输入控件应使用多行文本框，便于粘贴 URL。
+
+[受限站点解析策略]
+- Date: 2026-04-29
+- Context: 用户反馈 BiliBili 链接解析返回 HTTP 412
+- Instructions:
+  - 对源站返回 HTTP 412、登录限制、私有视频等情况，应展示清晰错误说明。
+  - 不实现绕过平台访问控制、风控或反机器人策略的解析逻辑。
+  - 不实现网页登录平台获取 cookie 或收集用户平台会话 cookie 的功能。
+  - 不实现前端上传 `cookies.sqlite`、Netscape `cookie.txt` 或其他浏览器 cookie 文件后传给 `you-get` / `yt-dlp` 的功能。
+  - 客户端加密 cookie 后由服务端解密仍属于服务端接收和使用敏感会话凭据，不作为可接受方案。
+  - 若需要登录态解析能力，应限定为完全本地运行的桌面或 CLI 工具，cookie 不离开用户设备。
