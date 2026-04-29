@@ -1,187 +1,93 @@
-const form = document.querySelector("#upload-form");
-const input = document.querySelector("#audio-file");
-const dropZone = document.querySelector("#drop-zone");
-const fileMeta = document.querySelector("#file-meta");
-const analyzeButton = document.querySelector("#analyze-button");
-const downloadJsonButton = document.querySelector("#download-json-button");
-const downloadBeatsButton = document.querySelector("#download-beats-button");
+const form = document.querySelector("#parse-form");
+const urlInput = document.querySelector("#video-url");
+const parseButton = document.querySelector("#parse-button");
 const statusTitle = document.querySelector("#status-title");
 const statusCopy = document.querySelector("#status-copy");
 const statusPill = document.querySelector("#status-pill");
 const progressBar = document.querySelector("#progress-bar");
-const beatCount = document.querySelector("#beat-count");
-const downbeatCount = document.querySelector("#downbeat-count");
+const formatCount = document.querySelector("#format-count");
+const subtitleCount = document.querySelector("#subtitle-count");
 const durationEl = document.querySelector("#duration");
-const bpmEl = document.querySelector("#bpm");
-const firstBeatEl = document.querySelector("#first-beat");
-const firstDownbeatEl = document.querySelector("#first-downbeat");
-const audioPlayer = document.querySelector("#audio-player");
-const playButton = document.querySelector("#play-button");
-const playbackTime = document.querySelector("#playback-time");
-const tapeStrip = document.querySelector("#tape-strip");
-const tapeCanvas = document.querySelector("#tape-canvas");
-const tapeContext = tapeCanvas.getContext("2d");
-const tapeTooltip = document.querySelector("#tape-tooltip");
-const currentBeat = document.querySelector("#current-beat");
-const beatTypeEl = document.querySelector("#beat-type");
-const zoomSlider = document.querySelector("#zoom-slider");
-const viewportSlider = document.querySelector("#viewport-slider");
-const beatList = document.querySelector("#beat-list");
-const beatListCount = document.querySelector("#beat-list-count");
+const extractorEl = document.querySelector("#extractor");
+const videoPreview = document.querySelector("#video-preview");
+const formatSelect = document.querySelector("#format-select");
+const formatList = document.querySelector("#format-list");
+const formatListCount = document.querySelector("#format-list-count");
+const downloadMediaButton = document.querySelector("#download-media-button");
+const downloadCoverButton = document.querySelector("#download-cover-button");
+const downloadDescriptionButton = document.querySelector("#download-description-button");
+const downloadSubtitleButton = document.querySelector("#download-subtitle-button");
+const currentSelection = document.querySelector("#current-selection");
+const selectionType = document.querySelector("#selection-type");
 
-let selectedFile = null;
 let latestResult = null;
-let audioObjectUrl = null;
-let playbackFrame = 0;
-let tapeZoom = 1;
-let viewportStart = 0;
-let tapeItems = [];
-let tapeDuration = 0;
-let hoverSegment = null;
 
-drawEmptyTape();
 checkHealth();
-
-input.addEventListener("change", () => {
-  setSelectedFile(input.files?.[0] || null);
-});
-
-dropZone.addEventListener("dragover", (event) => {
-  event.preventDefault();
-  dropZone.classList.add("is-dragging");
-});
-
-dropZone.addEventListener("dragleave", () => {
-  dropZone.classList.remove("is-dragging");
-});
-
-dropZone.addEventListener("drop", (event) => {
-  event.preventDefault();
-  dropZone.classList.remove("is-dragging");
-  const file = event.dataTransfer?.files?.[0] || null;
-  if (file) {
-    input.files = event.dataTransfer.files;
-    setSelectedFile(file);
-  }
-});
-
-playButton.addEventListener("click", async () => {
-  if (!audioPlayer.src) return;
-  if (audioPlayer.paused) {
-    await audioPlayer.play();
-  } else {
-    audioPlayer.pause();
-  }
-});
-
-audioPlayer.addEventListener("play", () => {
-  playButton.textContent = "暂停";
-  updatePlaybackLoop();
-});
-
-audioPlayer.addEventListener("pause", () => {
-  playButton.textContent = "播放";
-  cancelAnimationFrame(playbackFrame);
-  updatePlayhead();
-});
-
-audioPlayer.addEventListener("ended", () => {
-  playButton.textContent = "播放";
-  cancelAnimationFrame(playbackFrame);
-  updatePlayhead();
-});
-
-audioPlayer.addEventListener("loadedmetadata", () => {
-  updatePlayhead();
-});
-
-window.addEventListener("resize", () => {
-  drawTapeCanvas();
-});
-
-tapeStrip.addEventListener("click", (event) => {
-  seekFromPointer(event.clientX);
-});
-
-tapeStrip.addEventListener("pointermove", (event) => {
-  updateTapeHover(event);
-});
-
-tapeStrip.addEventListener("pointerleave", () => {
-  hoverSegment = null;
-  tapeTooltip.hidden = true;
-  drawTapeCanvas();
-});
-
-tapeStrip.addEventListener("keydown", (event) => {
-  if (!audioPlayer.duration) return;
-  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-    event.preventDefault();
-    const direction = event.key === "ArrowRight" ? 1 : -1;
-    audioPlayer.currentTime = clamp(audioPlayer.currentTime + direction * 5, 0, audioPlayer.duration);
-    updatePlayhead();
-  }
-});
-
-zoomSlider.addEventListener("input", () => {
-  tapeZoom = Number(zoomSlider.value);
-  keepPlayheadInView(getCurrentPlaybackPercent(), true);
-  updateViewportControls(Boolean(latestResult?.timeline?.length));
-  renderTapeViewport();
-});
-
-viewportSlider.addEventListener("input", () => {
-  seekFromProgressSlider();
-});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!selectedFile) return;
+  const targetUrl = urlInput.value.trim();
+  if (!targetUrl) return;
 
   setBusy(true);
-  setStatus("正在分析", "Processing", "正在使用 Beat This! 深度学习模型检测节拍...", 10);
+  setStatus("正在解析", "Parsing", "正在使用 yt-dlp 获取视频元信息，失败时会尝试 you-get。", 40);
+  resetResult();
 
   try {
-    latestResult = await analyzeWithBackend(selectedFile);
+    const response = await fetch("/api/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: targetUrl }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message || "解析失败");
+    }
+    latestResult = payload.result;
     renderResult(latestResult);
-    setStatus("分析完成", "Done", `检测到 ${latestResult.beatCount} 个 beats 和 ${latestResult.downbeatCount} 个 downbeats`, 100);
+    setStatus("解析完成", "Ready", "请选择格式下载。优先直连源站，必要时使用后端无落盘流式转发。", 100);
   } catch (error) {
-    latestResult = null;
-    resetResultSummary();
-    setStatus("分析失败", "Error", error.message || "节拍检测时发生未知错误。", 0, true);
+    setStatus("解析失败", "Error", error.message || "视频解析时发生未知错误。", 0, true);
   } finally {
     setBusy(false);
   }
 });
 
-downloadJsonButton.addEventListener("click", () => {
-  if (!latestResult) return;
-  const payload = JSON.stringify(latestResult, null, 2);
-  const blob = new Blob([payload], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = buildFileName(selectedFile?.name || "beat-result", "json");
-  link.click();
-  URL.revokeObjectURL(url);
+formatSelect.addEventListener("change", () => {
+  const selected = getSelectedFormat();
+  renderSelection(selected);
 });
 
-downloadBeatsButton.addEventListener("click", () => {
+downloadMediaButton.addEventListener("click", async () => {
+  const selected = getSelectedFormat();
+  if (!latestResult || !selected) return;
+  await requestDownload({ asset: selected.hasVideo ? "video" : "audio", formatId: selected.formatId });
+});
+
+downloadCoverButton.addEventListener("click", async () => {
+  if (!latestResult?.thumbnail) return;
+  await requestDownload({ asset: "thumbnail" });
+});
+
+downloadDescriptionButton.addEventListener("click", async () => {
   if (!latestResult) return;
-  const lines = [];
-  for (const beat of latestResult.beats) {
-    lines.push(`${beat.time.toFixed(3)}\t0`);
+  const payload = await requestDownload({ asset: "description" }, false);
+  if (payload?.content !== undefined) {
+    downloadBlob(payload.content || "", payload.filename || "description.txt", "text/plain");
   }
-  for (const db of latestResult.downbeats) {
-    lines.push(`${db.time.toFixed(3)}\t1`);
-  }
-  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = buildFileName(selectedFile?.name || "beat-result", "beats");
-  link.click();
-  URL.revokeObjectURL(url);
+});
+
+downloadSubtitleButton.addEventListener("click", async () => {
+  if (!latestResult) return;
+  const subtitles = latestResult.subtitles || {};
+  const automatic = latestResult.automaticCaptions || {};
+  const firstLanguage = Object.keys(subtitles)[0] || Object.keys(automatic)[0];
+  if (!firstLanguage) return;
+  await requestDownload({
+    asset: "subtitle",
+    language: firstLanguage,
+    subtitleKind: subtitles[firstLanguage] ? "manual" : "automatic",
+  });
 });
 
 async function checkHealth() {
@@ -189,460 +95,199 @@ async function checkHealth() {
     const response = await fetch("/api/health");
     const health = await response.json();
     if (health.ok) {
-      setStatus("服务就绪", "Ready", health.message, 0);
+      const detail = health.ytDlpAvailable ? health.message : "服务已启动，但 yt-dlp Python 依赖未安装。";
+      setStatus("服务就绪", "Ready", detail, 0, !health.ytDlpAvailable);
       return;
     }
-    setStatus("服务异常", "Warning", health.message, 0, true);
+    setStatus("服务异常", "Warning", health.message || "服务状态异常。", 0, true);
   } catch {
-    setStatus("后端未连接", "Offline", "未检测到后端服务，上传后将无法进行分析。", 0, true);
+    setStatus("后端未连接", "Offline", "未检测到解析服务，请先启动 FastAPI 后端。", 0, true);
   }
 }
 
-async function analyzeWithBackend(file) {
-  const formData = new FormData();
-  formData.append("file", file);
+async function requestDownload(options, shouldOpen = true) {
+  if (!latestResult?.parseId) return null;
+  setStatus("正在生成下载链接", "Preparing", "后端正在生成短期有效的下载地址。", 65);
 
-  setProgress(20);
-  setStatus("正在上传", "Uploading", "正在上传音频文件...", 20);
-
-  const response = await fetch("/api/analyze", {
+  const response = await fetch("/api/download-url", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parseId: latestResult.parseId, ...options }),
   });
-
-  setProgress(70);
-  setStatus("正在分析", "Analyzing", "正在使用深度学习模型检测节拍...", 70);
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(payload.message || "节拍分析失败。");
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) {
+    setStatus("生成失败", "Error", payload.message || "无法生成下载链接。", 0, true);
+    return null;
   }
 
-  setProgress(100);
+  setStatus("下载链接已生成", "Ready", "如果直连被浏览器或源站拒绝，请使用后端代理流地址。", 100);
+  if (shouldOpen) {
+    openDownload(payload.directUrl || payload.proxyUrl, payload.filename);
+  }
   return payload;
 }
 
 function renderResult(result) {
-  beatCount.textContent = result.beatCount || 0;
-  downbeatCount.textContent = result.downbeatCount || 0;
-  durationEl.textContent = formatTime(result.duration);
-  bpmEl.textContent = result.bpm ? result.bpm.toFixed(1) : "--";
-  firstBeatEl.textContent = result.firstBeat !== null ? formatTime(result.firstBeat) : "--";
-  firstDownbeatEl.textContent = result.firstDownbeat !== null ? formatTime(result.firstDownbeat) : "--";
+  const formats = result.formats || [];
+  const manualSubtitleCount = countSubtitleEntries(result.subtitles);
+  const autoSubtitleCount = countSubtitleEntries(result.automaticCaptions);
 
-  downloadJsonButton.disabled = false;
-  downloadBeatsButton.disabled = false;
-  playButton.disabled = !audioPlayer.src;
+  formatCount.textContent = String(formats.length);
+  subtitleCount.textContent = String(manualSubtitleCount + autoSubtitleCount);
+  durationEl.textContent = result.durationText || "--";
+  extractorEl.textContent = result.extractor || "--";
 
-  renderTapeStrip(result.timeline, result.duration);
-  renderBeatList(result.beats, result.downbeats);
+  videoPreview.innerHTML = `
+    <div class="video-preview__media">
+      ${result.thumbnail ? `<img src="${escapeAttribute(result.thumbnail)}" alt="视频封面" />` : ""}
+    </div>
+    <div class="video-preview__body">
+      <p class="eyebrow">${escapeHtml(result.extractor || "parser")}</p>
+      <h3>${escapeHtml(result.title || "未命名视频")}</h3>
+      <p>${escapeHtml(result.uploader || "--")} · ${escapeHtml(result.durationText || "--")}</p>
+      <p class="video-description">${escapeHtml(truncate(result.description || "暂无描述", 180))}</p>
+    </div>
+  `;
+
+  renderFormats(formats);
+  downloadCoverButton.disabled = !result.thumbnail;
+  downloadDescriptionButton.disabled = !result.description;
+  downloadSubtitleButton.disabled = manualSubtitleCount + autoSubtitleCount === 0;
 }
 
-function renderTapeStrip(items, totalDuration) {
-  tapeItems = items || [];
-  tapeDuration = totalDuration || 0;
-  const empty = tapeStrip.querySelector(".tape-strip__empty");
+function renderFormats(formats) {
+  formatSelect.innerHTML = "";
+  formatList.innerHTML = "";
+  formatListCount.textContent = formats.length ? `${formats.length} 个格式` : "";
 
-  if (!tapeItems.length || !tapeDuration) {
-    empty.hidden = false;
-    viewportStart = 0;
-    currentBeat.textContent = "--";
-    beatTypeEl.textContent = "";
-    hoverSegment = null;
-    tapeTooltip.hidden = true;
-    updateViewportControls(false);
-    renderTapeViewport();
-    updatePlayhead();
+  if (!formats.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "未找到可下载格式";
+    formatSelect.append(option);
+    formatSelect.disabled = true;
+    downloadMediaButton.disabled = true;
+    formatList.innerHTML = '<div class="beat-item">没有可用格式。该站点可能限制下载或需要登录。</div>';
     return;
   }
 
-  empty.hidden = true;
-  updateViewportControls(true);
-  renderTapeViewport();
-  updatePlayhead();
-}
+  for (const item of formats) {
+    const option = document.createElement("option");
+    option.value = item.formatId;
+    option.textContent = buildFormatLabel(item);
+    formatSelect.append(option);
 
-function drawTapeCanvas() {
-  const rect = tapeCanvas.getBoundingClientRect();
-  const pixelRatio = window.devicePixelRatio || 1;
-  const width = Math.max(1, Math.round(rect.width * pixelRatio));
-  const height = Math.max(1, Math.round(rect.height * pixelRatio));
-  if (tapeCanvas.width !== width || tapeCanvas.height !== height) {
-    tapeCanvas.width = width;
-    tapeCanvas.height = height;
-  }
-
-  tapeContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-  tapeContext.clearRect(0, 0, rect.width, rect.height);
-  tapeContext.fillStyle = "rgba(15, 23, 42, 0.2)";
-  tapeContext.fillRect(0, 0, rect.width, rect.height);
-
-  if (!tapeItems.length || !tapeDuration) {
-    return;
-  }
-
-  const visible = getVisibleTimeRange();
-  drawBeatMarkers(visible, rect.width, rect.height);
-  drawCanvasPlayhead(visible, rect.width, rect.height);
-}
-
-function drawBeatMarkers(visible, width, height) {
-  tapeContext.save();
-
-  for (const item of tapeItems) {
-    if (item.time < visible.start || item.time > visible.end) {
-      continue;
-    }
-    const x = timeToCanvasX(item.time, visible, width);
-    const isDownbeat = item.type === "downbeat";
-
-    tapeContext.strokeStyle = isDownbeat
-      ? "rgba(249, 115, 22, 0.9)"
-      : "rgba(134, 239, 172, 0.6)";
-    tapeContext.lineWidth = isDownbeat ? 4 : 2;
-
-    tapeContext.beginPath();
-    tapeContext.moveTo(x, 0);
-    tapeContext.lineTo(x, height);
-    tapeContext.stroke();
-
-    if (isDownbeat) {
-      tapeContext.fillStyle = "#f97316";
-      tapeContext.beginPath();
-      tapeContext.arc(x, 12, 7, 0, Math.PI * 2);
-      tapeContext.fill();
-    } else {
-      tapeContext.fillStyle = "#86efac";
-      tapeContext.beginPath();
-      tapeContext.arc(x, 12, 5, 0, Math.PI * 2);
-      tapeContext.fill();
-    }
-  }
-
-  tapeContext.restore();
-}
-
-function drawCanvasPlayhead(visible, width, height) {
-  const current = audioPlayer.currentTime || 0;
-  if (current < visible.start || current > visible.end) {
-    return;
-  }
-  const x = timeToCanvasX(current, visible, width);
-  tapeContext.strokeStyle = "#ffffff";
-  tapeContext.lineWidth = 3;
-  tapeContext.shadowColor = "rgba(134, 239, 172, 0.85)";
-  tapeContext.shadowBlur = 14;
-  tapeContext.beginPath();
-  tapeContext.moveTo(x, 0);
-  tapeContext.lineTo(x, height);
-  tapeContext.stroke();
-  tapeContext.shadowBlur = 0;
-  tapeContext.fillStyle = "#86efac";
-  tapeContext.beginPath();
-  tapeContext.arc(x, 12, 6, 0, Math.PI * 2);
-  tapeContext.fill();
-}
-
-function updateTapeHover(event) {
-  if (!tapeItems.length || !tapeDuration) {
-    return;
-  }
-  const rect = tapeStrip.getBoundingClientRect();
-  const visible = getVisibleTimeRange();
-  const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-  const time = visible.start + ratio * (visible.end - visible.start);
-  hoverSegment = findSegmentAtTime(time, tapeItems);
-  if (!hoverSegment) {
-    tapeTooltip.hidden = true;
-    drawTapeCanvas();
-    return;
-  }
-  const left = clamp(event.clientX - rect.left + 12, 10, rect.width - 230);
-  const top = clamp(event.clientY - rect.top - 10, 8, rect.height - 76);
-  tapeTooltip.style.left = `${left}px`;
-  tapeTooltip.style.top = `${top}px`;
-  const isDownbeat = hoverSegment.type === "downbeat";
-  tapeTooltip.innerHTML = `<strong class="${isDownbeat ? 'downbeat' : ''}">${isDownbeat ? 'DOWNBEAT' : 'BEAT'}</strong>${formatTime(hoverSegment.time)}`;
-  tapeTooltip.hidden = false;
-  drawTapeCanvas();
-}
-
-function updateCurrentBeat(time) {
-  const segment = findSegmentAtTime(time, tapeItems);
-  if (segment) {
-    currentBeat.textContent = formatTime(segment.time);
-    beatTypeEl.textContent = segment.type === "downbeat" ? "DOWNBEAT" : "BEAT";
-  } else {
-    currentBeat.textContent = "--";
-    beatTypeEl.textContent = "";
-  }
-}
-
-function findSegmentAtTime(time, items) {
-  let closest = null;
-  let minDist = Infinity;
-  for (const item of items) {
-    const dist = Math.abs(item.time - time);
-    if (dist < minDist && item.time <= time + 0.1) {
-      minDist = dist;
-      closest = item;
-    }
-  }
-  return closest || items.at(-1) || null;
-}
-
-function getVisibleTimeRange() {
-  const visibleWidth = getVisibleWindowPercent();
-  const start = (viewportStart / 100) * tapeDuration;
-  const end = Math.min(tapeDuration, ((viewportStart + visibleWidth) / 100) * tapeDuration);
-  return { start, end: Math.max(end, start + 0.01) };
-}
-
-function timeToCanvasX(time, visible, width) {
-  return ((time - visible.start) / (visible.end - visible.start)) * width;
-}
-
-function setAudioSource(file) {
-  cancelAnimationFrame(playbackFrame);
-  if (audioObjectUrl) {
-    URL.revokeObjectURL(audioObjectUrl);
-  }
-  audioObjectUrl = URL.createObjectURL(file);
-  audioPlayer.src = audioObjectUrl;
-  audioPlayer.currentTime = 0;
-  playButton.disabled = true;
-  playButton.textContent = "播放";
-  updatePlayhead();
-}
-
-function resetTransport() {
-  cancelAnimationFrame(playbackFrame);
-  if (audioObjectUrl) {
-    URL.revokeObjectURL(audioObjectUrl);
-    audioObjectUrl = null;
-  }
-  audioPlayer.removeAttribute("src");
-  playButton.disabled = true;
-  playButton.textContent = "播放";
-  playbackTime.textContent = "0:00 / 0:00";
-  currentBeat.textContent = "--";
-  beatTypeEl.textContent = "";
-  tapeStrip.setAttribute("aria-valuenow", "0");
-  viewportStart = 0;
-  tapeItems = [];
-  tapeDuration = 0;
-  hoverSegment = null;
-  tapeTooltip.hidden = true;
-  updateViewportControls(false);
-  renderTapeViewport();
-  const empty = tapeStrip.querySelector(".tape-strip__empty");
-  empty.hidden = false;
-}
-
-function updatePlaybackLoop() {
-  updatePlayhead();
-  playbackFrame = requestAnimationFrame(updatePlaybackLoop);
-}
-
-function updatePlayhead() {
-  const current = audioPlayer.currentTime || 0;
-  const total = audioPlayer.duration || latestResult?.duration || 0;
-  const percent = getCurrentPlaybackPercent();
-  if (!audioPlayer.paused) {
-    keepPlayheadInView(percent);
-  }
-  tapeStrip.setAttribute("aria-valuenow", String(Math.round(percent)));
-  viewportSlider.value = String(percent);
-  playbackTime.textContent = `${formatTime(current)} / ${formatTime(total)}`;
-  updateCurrentBeat(current);
-  drawTapeCanvas();
-}
-
-function seekFromProgressSlider() {
-  const total = audioPlayer.duration || latestResult?.duration || 0;
-  if (!total) return;
-  const percent = clamp(Number(viewportSlider.value), 0, 100);
-  audioPlayer.currentTime = (percent / 100) * total;
-  keepPlayheadInView(percent, true);
-  updatePlayhead();
-}
-
-function seekFromPointer(clientX) {
-  const total = audioPlayer.duration || latestResult?.duration || 0;
-  if (!total) return;
-  const rect = tapeStrip.getBoundingClientRect();
-  const visibleWidth = getVisibleWindowPercent();
-  const percent = clamp(viewportStart + ((clientX - rect.left) / rect.width) * visibleWidth, 0, 100);
-  audioPlayer.currentTime = (percent / 100) * total;
-  keepPlayheadInView(percent, true);
-  updatePlayhead();
-}
-
-function updateViewportControls(enabled) {
-  const visibleWidth = getVisibleWindowPercent();
-  const max = Math.max(0, 100 - visibleWidth);
-  viewportStart = clamp(viewportStart, 0, max);
-  viewportSlider.max = "100";
-  viewportSlider.value = String(getCurrentPlaybackPercent());
-  viewportSlider.disabled = !enabled;
-}
-
-function renderTapeViewport() {
-  const visibleWidth = getVisibleWindowPercent();
-  const max = Math.max(0, 100 - visibleWidth);
-  viewportStart = clamp(viewportStart, 0, max);
-  drawTapeCanvas();
-}
-
-function keepPlayheadInView(percent, center = false) {
-  const visibleWidth = getVisibleWindowPercent();
-  const padding = Math.min(visibleWidth * 0.18, 8);
-  const max = Math.max(0, 100 - visibleWidth);
-
-  if (center) {
-    viewportStart = clamp(percent - visibleWidth / 2, 0, max);
-    renderTapeViewport();
-    return;
-  }
-
-  if (percent < viewportStart + padding) {
-    viewportStart = clamp(percent - padding, 0, max);
-    renderTapeViewport();
-    return;
-  }
-
-  if (percent > viewportStart + visibleWidth - padding) {
-    viewportStart = clamp(percent - visibleWidth + padding, 0, max);
-    renderTapeViewport();
-  }
-}
-
-function getVisibleWindowPercent() {
-  return 100 / Math.max(1, tapeZoom);
-}
-
-function getCurrentPlaybackPercent() {
-  const total = audioPlayer.duration || latestResult?.duration || 0;
-  return total ? clamp(((audioPlayer.currentTime || 0) / total) * 100, 0, 100) : 0;
-}
-
-function drawEmptyTape() {
-  const rect = tapeCanvas.getBoundingClientRect();
-  const pixelRatio = window.devicePixelRatio || 1;
-  tapeCanvas.width = Math.max(1, Math.round(rect.width * pixelRatio));
-  tapeCanvas.height = Math.max(1, Math.round(rect.height * pixelRatio));
-  tapeContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-  tapeContext.clearRect(0, 0, rect.width, rect.height);
-  tapeContext.fillStyle = "rgba(15, 23, 42, 0.2)";
-  tapeContext.fillRect(0, 0, rect.width, rect.height);
-}
-
-function resetResultSummary() {
-  downloadJsonButton.disabled = true;
-  downloadBeatsButton.disabled = true;
-  beatCount.textContent = "--";
-  downbeatCount.textContent = "--";
-  durationEl.textContent = "0:00";
-  bpmEl.textContent = "--";
-  firstBeatEl.textContent = "--";
-  firstDownbeatEl.textContent = "--";
-  renderTapeStrip([], 0);
-  beatList.innerHTML = "";
-  beatListCount.textContent = "";
-}
-
-function renderBeatList(beats, downbeats) {
-  beatList.innerHTML = "";
-
-  const allBeats = [
-    ...beats.map(b => ({ ...b, type: "beat" })),
-    ...downbeats.map(b => ({ ...b, type: "downbeat" }))
-  ].sort((a, b) => a.time - b.time);
-
-  beatListCount.textContent = `共 ${allBeats.length} 个节拍`;
-
-  const displayBeats = allBeats.slice(0, 100);
-
-  for (const beat of displayBeats) {
-    const item = document.createElement("div");
-    item.className = `beat-item ${beat.type === "downbeat" ? "downbeat" : ""}`;
-    item.innerHTML = `
-      <div class="beat-marker"></div>
-      <span class="beat-time">${formatTime(beat.time)}</span>
-      <span class="beat-type-label">${beat.type === "downbeat" ? "DOWNBEAT" : "BEAT"}</span>
+    const row = document.createElement("button");
+    row.className = "beat-item format-item";
+    row.type = "button";
+    row.innerHTML = `
+      <span>${escapeHtml(buildFormatLabel(item))}</span>
+      <strong>${escapeHtml(item.hasVideo ? "Video" : "Audio")}</strong>
     `;
-    beatList.appendChild(item);
+    row.addEventListener("click", () => {
+      formatSelect.value = item.formatId;
+      renderSelection(item);
+      row.scrollIntoView({ block: "nearest" });
+    });
+    formatList.append(row);
   }
 
-  if (allBeats.length > 100) {
-    const more = document.createElement("div");
-    more.className = "beat-item";
-    more.style.gridColumn = "1 / -1";
-    more.style.justifyContent = "center";
-    more.style.color = "var(--muted)";
-    more.textContent = `... 还有 ${allBeats.length - 100} 个节拍`;
-    beatList.appendChild(more);
-  }
+  formatSelect.disabled = false;
+  downloadMediaButton.disabled = false;
+  renderSelection(formats[0]);
 }
 
-function setSelectedFile(file) {
-  selectedFile = file;
-  latestResult = null;
-  analyzeButton.disabled = !file;
-
-  if (!file) {
-    fileMeta.hidden = true;
-    fileMeta.textContent = "";
-    resetTransport();
+function renderSelection(item) {
+  if (!item) {
+    currentSelection.textContent = "--";
+    selectionType.textContent = "";
     return;
   }
+  currentSelection.textContent = item.formatId || "默认";
+  selectionType.textContent = buildFormatLabel(item);
+}
 
-  setAudioSource(file);
-  renderTapeStrip([], 0);
-  fileMeta.hidden = false;
-  fileMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
-  resetResultSummary();
-  setStatus("音频已就绪", "Ready", "点击开始检测节拍", 0);
+function getSelectedFormat() {
+  const selectedId = formatSelect.value;
+  return (latestResult?.formats || []).find((item) => item.formatId === selectedId) || null;
+}
+
+function buildFormatLabel(item) {
+  const parts = [item.label || item.formatId || "default"];
+  if (item.filesizeText) parts.push(item.filesizeText);
+  if (item.hasVideo && !item.hasAudio) parts.push("video only");
+  if (!item.hasVideo && item.hasAudio) parts.push("audio only");
+  if (item.protocol) parts.push(item.protocol);
+  return parts.join(" · ");
+}
+
+function resetResult() {
+  latestResult = null;
+  formatCount.textContent = "--";
+  subtitleCount.textContent = "--";
+  durationEl.textContent = "--";
+  extractorEl.textContent = "--";
+  videoPreview.innerHTML = '<div class="video-preview__empty">解析成功后显示视频信息</div>';
+  formatSelect.innerHTML = '<option value="">解析后选择格式</option>';
+  formatSelect.disabled = true;
+  formatList.innerHTML = "";
+  formatListCount.textContent = "";
+  downloadMediaButton.disabled = true;
+  downloadCoverButton.disabled = true;
+  downloadDescriptionButton.disabled = true;
+  downloadSubtitleButton.disabled = true;
+  renderSelection(null);
 }
 
 function setBusy(isBusy) {
-  analyzeButton.disabled = isBusy || !selectedFile;
-  input.disabled = isBusy;
+  parseButton.disabled = isBusy;
+  parseButton.textContent = isBusy ? "解析中..." : "开始解析";
 }
 
 function setStatus(title, pill, copy, progress, isError = false) {
   statusTitle.textContent = title;
   statusPill.textContent = pill;
   statusCopy.textContent = copy;
-  statusCopy.classList.toggle("is-error", isError);
-  setProgress(progress);
+  progressBar.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+  statusPill.classList.toggle("is-error", isError);
 }
 
-function setProgress(value) {
-  progressBar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+function openDownload(url, filename) {
+  if (!url) return;
+  const link = document.createElement("a");
+  link.href = url;
+  if (filename) link.download = filename;
+  link.rel = "noopener noreferrer";
+  link.target = "_blank";
+  document.body.append(link);
+  link.click();
+  link.remove();
 }
 
-function formatTime(seconds) {
-  if (seconds === null || seconds === undefined) return "--";
-  const safeSeconds = Math.max(0, seconds || 0);
-  const minutes = Math.floor(safeSeconds / 60);
-  const rest = (safeSeconds % 60).toFixed(2).padStart(5, "0");
-  return `${minutes}:${rest}`;
+function downloadBlob(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  openDownload(url, filename);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function formatBytes(bytes) {
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+function countSubtitleEntries(groups = {}) {
+  return Object.values(groups).reduce((total, entries) => total + entries.length, 0);
 }
 
-function buildFileName(fileName, ext) {
-  const baseName = fileName.replace(/\.[^/.]+$/, "") || "beat-result";
-  return `${baseName}.${ext}`;
+function truncate(value, maxLength) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 }
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replaceAll("`", "&#096;");
 }

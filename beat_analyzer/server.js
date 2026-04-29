@@ -119,5 +119,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Beat Analyzer server running at http://localhost:${PORT}`);
+  console.log(`VNASeek视频解析 server running at http://localhost:${PORT}`);
 });
