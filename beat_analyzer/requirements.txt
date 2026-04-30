@@ -4,3 +4,4 @@ pydantic>=2.0
 uvicorn[standard]>=0.29
 yt-dlp>=2024.12.13
 you-get>=0.4.1700
+python-multipart>=0.0.9

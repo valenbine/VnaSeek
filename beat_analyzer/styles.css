@@ -30,7 +30,7 @@ body {
     radial-gradient(circle at 78% 8%, rgba(124, 58, 237, 0.46), transparent 36rem),
     linear-gradient(135deg, #090914 0%, var(--bg) 48%, #17133a 100%);
   color: var(--text);
-  font-family: Poppins, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 button,
@@ -91,7 +91,7 @@ p {
 
 h1 {
   margin-bottom: 18px;
-  font-family: Righteous, Poppins, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   font-size: clamp(2.25rem, 5vw, 4.4rem);
   line-height: 1.04;
   letter-spacing: -0.03em;
@@ -260,7 +260,7 @@ h3 {
 .bpm-display {
   text-align: center;
   margin-top: 16px;
-  font-family: Righteous, Poppins, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 2rem;
   color: var(--text);
 }
@@ -376,6 +376,18 @@ h3 {
   cursor: pointer;
 }
 
+.cookie-zone {
+  min-height: 132px;
+  margin-top: -6px;
+  border-color: rgba(124, 58, 237, 0.55);
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.cookie-zone:hover {
+  border-color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.16);
+}
+
 .drop-zone:hover,
 .drop-zone.is-dragging {
   border-color: var(--accent-strong);
@@ -488,7 +500,7 @@ button:disabled {
 }
 
 .metric {
-  font-family: Righteous, Poppins, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   font-size: clamp(1.45rem, 3.4vw, 2.6rem);
   line-height: 1;
 }
@@ -524,6 +536,12 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .transport__sliders {
@@ -578,7 +596,7 @@ button:disabled {
 
 .current-beat strong {
   color: var(--accent-strong);
-  font-family: Righteous, Poppins, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 1.45rem;
   line-height: 1;
 }
@@ -642,7 +660,7 @@ button:disabled {
   display: block;
   margin-bottom: 4px;
   color: var(--accent-strong);
-  font-family: Righteous, Poppins, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 1.25rem;
 }
 
@@ -787,6 +805,7 @@ button:disabled {
 }
 
 .video-preview__media {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 26px;
@@ -796,11 +815,63 @@ button:disabled {
   aspect-ratio: 16 / 9;
 }
 
-.video-preview__media img {
+.video-preview__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 13, 30, 0.68);
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.video-preview__play {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  text-align: center;
+}
+
+.video-preview__play::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 35%, rgba(0, 0, 0, 0.62));
+}
+
+.video-preview__play span {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 1;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.76);
+  padding: 10px 16px;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+
+.video-preview__media img,
+.video-preview__player {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.video-preview__placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .video-preview__body h3 {
@@ -816,9 +887,11 @@ button:disabled {
 .format-control {
   display: grid;
   gap: 10px;
+  align-content: start;
+  justify-items: start;
 }
 
-.format-control span {
+.format-control label {
   color: var(--muted);
   font-weight: 700;
 }
@@ -830,6 +903,11 @@ button:disabled {
   background: rgba(8, 8, 20, 0.72);
   color: var(--text);
   padding: 14px 16px;
+}
+
+.format-control button {
+  justify-self: start;
+  width: 148px;
 }
 
 .format-item {
@@ -899,6 +977,10 @@ button:disabled {
   .transport__controls {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .format-grid {
+    grid-template-columns: 1fr;
   }
 
   .transport__sliders {

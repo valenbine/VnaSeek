@@ -8,12 +8,6 @@
       content="VNASeek视频解析是基于 yt-dlp 和 you-get 的在线视频解析下载工具，优先浏览器直连下载，必要时无落盘流式转发。"
     />
     <title>VNASeek视频解析</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -23,7 +17,7 @@
           <p class="eyebrow">BeatThis! inspired · yt-dlp · you-get</p>
           <h1 id="app-title">VNASeek视频解析</h1>
           <p class="hero__copy">
-            输入可匿名访问的视频页面地址，解析视频、音频、封面、描述和字幕。VNASeek视频解析不收集登录 cookie，大文件优先由浏览器直连源站下载，必要时通过后端边拉边传。
+            输入视频页面地址，可选择上传 cookies.txt 或 Firefox cookies.sqlite 辅助解析。VNASeek视频解析仅在本次解析中临时使用 Cookie，不保存、不记录，大文件优先由浏览器直连源站下载。
           </p>
           <div class="hero__badges" aria-label="功能特点">
             <span>URL Parser</span>
@@ -71,14 +65,20 @@
             </svg>
             <div>
               <h2>粘贴视频地址</h2>
-              <p>支持 yt-dlp / you-get 可匿名解析的公开站点。不会收集或使用平台登录 cookie。</p>
+              <p>支持 yt-dlp / you-get 可解析站点。Cookie 文件仅用于本次解析，后端不会留存或写入日志。</p>
             </div>
           </div>
 
           <label class="drop-zone url-zone" for="video-url" id="url-zone">
             <textarea id="video-url" placeholder="https://example.com/watch?v=..." autocomplete="url" rows="5" required></textarea>
             <span class="drop-zone__title">输入公开视频页面 URL</span>
-            <span class="drop-zone__hint">仅支持无需登录态的链接；后端只解析元信息，不预下载大文件。</span>
+            <span class="drop-zone__hint">后端只解析元信息，不预下载大文件。</span>
+          </label>
+
+          <label class="drop-zone cookie-zone" for="cookie-file" id="cookie-zone">
+            <input id="cookie-file" type="file" accept=".txt,.sqlite,text/plain,application/x-sqlite3" />
+            <span class="drop-zone__title" id="cookie-file-title">可选：上传 Cookie 文件</span>
+            <span class="drop-zone__hint" id="cookie-file-hint">支持 Firefox cookies.sqlite 或 Netscape cookies.txt；解析完成后立即删除临时文件。</span>
           </label>
 
           <button class="primary-action" type="submit" id="parse-button">开始解析</button>
@@ -93,7 +93,7 @@
             <span class="status-pill" id="status-pill">Idle</span>
           </div>
           <p class="status-copy" id="status-copy">
-            解析后会展示可用格式、字幕和封面。若源站要求登录 cookie 或平台校验，系统会提示匿名解析不可用。
+            解析后会展示可用格式、字幕和封面。若源站要求登录 Cookie，可上传 cookies.txt 或 Firefox cookies.sqlite 后重试。
           </p>
           <div class="progress" aria-label="解析进度">
             <span id="progress-bar"></span>
@@ -140,34 +140,27 @@
           </div>
 
           <div class="transport" aria-label="下载控制">
-            <label class="format-control" for="format-select">
-              <span>视频/音频格式</span>
-              <select id="format-select" disabled>
-                <option value="">解析后选择格式</option>
-              </select>
-            </label>
-            <div class="transport__controls">
-              <button class="play-action" id="download-media-button" type="button" disabled>下载所选媒体</button>
-              <span class="transport__time" id="download-mode">优先直连，失败可使用代理流</span>
-            </div>
-            <div class="current-beat" aria-live="polite">
-              <span>当前</span>
-              <strong id="current-selection">--</strong>
-              <span id="selection-type"></span>
+            <div class="format-grid">
+              <div class="format-control">
+                <label for="video-format-select">视频格式</label>
+                <select id="video-format-select" disabled>
+                  <option value="">解析后选择视频</option>
+                </select>
+                <button class="play-action" id="merge-media-button" type="button" disabled>下载视频</button>
+              </div>
+              <div class="format-control">
+                <label for="audio-format-select">音频格式</label>
+                <select id="audio-format-select" disabled>
+                  <option value="">解析后选择音频</option>
+                </select>
+                <button class="play-action" id="download-audio-button" type="button" disabled>下载音频</button>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="beat-list-card">
-          <div class="beat-list-header">
-            <h3>格式列表</h3>
-            <span id="format-list-count"></span>
-          </div>
-          <div class="beat-list" id="format-list"></div>
         </div>
       </section>
     </main>
 
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/main.js?v=20260430-global-media-task-lock"></script>
   </body>
 </html>
