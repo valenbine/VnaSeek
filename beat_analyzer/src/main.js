@@ -425,7 +425,7 @@ async function playPreviewVideo() {
   try {
     setPreviewOverlay("正在缓冲...");
     const preview = pickPreviewFormats(latestResult.formats || []);
-    logMerge(`预览格式选择：video=${preview.video?.formatId || "none"}, audio=${preview.audio?.formatId || "none"}, reason=${preview.reason}`);
+    logMerge(`预览格式选择：video=${preview.video?.formatId || "none"}, audio=${preview.audio?.formatId || "none"}, reason=${preview.reason}, score=${preview.score ?? "n/a"}`);
     if (!preview.video) {
       setStatus("无法播放", "Warning", "没有找到可播放的视频格式。", 0, true);
       return;
@@ -473,19 +473,30 @@ async function playPreviewVideo() {
 }
 
 function pickPreviewFormats(formats) {
-  const videoOnly = formats.filter((item) => item.hasVideo && !item.hasAudio).sort(compareSmallVideo);
-  const anyVideo = formats.filter((item) => item.hasVideo).sort(compareSmallVideo);
-  const audioOnly = formats.filter((item) => item.hasAudio && !item.hasVideo).sort(compareSmallAudio);
-  if (audioOnly.length && (videoOnly.length || anyVideo.length)) {
-    return { video: videoOnly[0] || anyVideo[0], audio: audioOnly[0], reason: "merge-smallest-video-audio" };
+  const videoOnly = formats.filter((item) => item.hasVideo && !item.hasAudio);
+  const anyVideo = formats.filter((item) => item.hasVideo);
+  const audioOnly = formats.filter((item) => item.hasAudio && !item.hasVideo);
+  const combined = formats.filter((item) => item.hasVideo && item.hasAudio);
+
+  const bestCombined = chooseBestPreviewCombined(combined);
+  const bestPair = chooseBestPreviewPair(videoOnly.length ? videoOnly : anyVideo, audioOnly);
+
+  if (bestCombined && bestPair) {
+    return bestCombined.score <= bestPair.score
+      ? { video: bestCombined.format, audio: null, reason: "prefer-compatible-combined", score: bestCombined.score }
+      : { video: bestPair.video, audio: bestPair.audio, reason: "prefer-compatible-separate", score: bestPair.score };
   }
 
-  const combined = formats.filter((item) => item.hasVideo && item.hasAudio).sort(compareSmallVideo);
-  if (combined.length) {
-    return { video: combined[0], audio: null, reason: "fallback-combined" };
+  if (bestCombined) {
+    return { video: bestCombined.format, audio: null, reason: "fallback-compatible-combined", score: bestCombined.score };
   }
 
-  return { video: anyVideo[0] || null, audio: null, reason: "fallback-video-only" };
+  if (bestPair) {
+    return { video: bestPair.video, audio: bestPair.audio, reason: "fallback-compatible-separate", score: bestPair.score };
+  }
+
+  const fallback = anyVideo.sort(compareSmallVideo)[0] || null;
+  return { video: fallback, audio: null, reason: "fallback-video-only", score: fallback ? previewVideoScore(fallback) : Number.MAX_SAFE_INTEGER };
 }
 
 function compareSmallVideo(left, right) {
@@ -494,6 +505,123 @@ function compareSmallVideo(left, right) {
 
 function compareSmallAudio(left, right) {
   return formatSizeScore(left) - formatSizeScore(right);
+}
+
+function chooseBestPreviewCombined(formats) {
+  if (!formats.length) return null;
+
+  let best = null;
+  let bestScore = Number.MAX_SAFE_INTEGER;
+  let bestSize = Number.MAX_SAFE_INTEGER;
+  for (const format of formats) {
+    const score = previewCombinedScore(format);
+    const size = formatSizeScore(format);
+    if (score < bestScore || (score === bestScore && size < bestSize)) {
+      best = format;
+      bestScore = score;
+      bestSize = size;
+    }
+  }
+
+  return best ? { format: best, score: bestScore } : null;
+}
+
+function chooseBestPreviewPair(videoFormats, audioFormats) {
+  if (!videoFormats.length || !audioFormats.length) return null;
+
+  let best = null;
+  let bestScore = Number.MAX_SAFE_INTEGER;
+  let bestSize = Number.MAX_SAFE_INTEGER;
+  for (const video of videoFormats) {
+    for (const audio of audioFormats) {
+      const score = previewPairScore(video, audio);
+      const size = formatSizeScore(video) + formatSizeScore(audio);
+      if (score < bestScore || (score === bestScore && size < bestSize)) {
+        best = { video, audio, score };
+        bestScore = score;
+        bestSize = size;
+      }
+    }
+  }
+
+  return best;
+}
+
+function previewCombinedScore(format) {
+  return previewVideoScore(format) + previewAudioScore(format) - 1;
+}
+
+function previewPairScore(video, audio) {
+  let score = previewVideoScore(video) + previewAudioScore(audio) + 1;
+  const outputExt = outputExtension(video, audio);
+  if (outputExt === "mkv") score += 6;
+  if (outputExt === "webm") score += 1;
+  return score;
+}
+
+function previewVideoScore(format) {
+  return previewContainerScore(format.ext) + previewVideoCodecScore(format.videoCodec) + previewResolutionScore(format) + previewFilesizeScore(format);
+}
+
+function previewAudioScore(format) {
+  return previewContainerScore(format.ext) + previewAudioCodecScore(format.audioCodec) + previewFilesizeScore(format);
+}
+
+function previewContainerScore(ext) {
+  switch (String(ext || "").toLowerCase()) {
+    case "mp4":
+    case "m4a":
+    case "mp3":
+    case "aac":
+      return 0;
+    case "webm":
+    case "ogg":
+      return 1;
+    case "mov":
+      return 2;
+    case "mkv":
+      return 5;
+    default:
+      return 3;
+  }
+}
+
+function previewVideoCodecScore(codec) {
+  const value = String(codec || "unknown").toLowerCase();
+  if (value === "none") return 99;
+  if (value === "unknown") return 6;
+  if (value.includes("avc") || value.includes("h264")) return 0;
+  if (value.includes("vp9") || value.includes("vp8")) return 1;
+  if (value.includes("hev") || value.includes("h265") || value.includes("hevc")) return 3;
+  if (value.includes("av01") || value.includes("av1")) return 4;
+  return 2;
+}
+
+function previewAudioCodecScore(codec) {
+  const value = String(codec || "unknown").toLowerCase();
+  if (value === "none") return 99;
+  if (value === "unknown") return 4;
+  if (value.includes("mp4a") || value.includes("aac") || value.includes("mp3")) return 0;
+  if (value.includes("opus") || value.includes("vorbis")) return 1;
+  return 2;
+}
+
+function previewResolutionScore(format) {
+  const height = Number(format.height) || 0;
+  if (!height) return 3;
+  if (height < 180) return 2;
+  if (height <= 720) return 0;
+  if (height <= 1080) return 1;
+  return 2;
+}
+
+function previewFilesizeScore(format) {
+  const size = Number(format.filesize) || 0;
+  if (!size) return 1;
+  if (size <= 25 * 1024 * 1024) return 0;
+  if (size <= 80 * 1024 * 1024) return 1;
+  if (size <= 160 * 1024 * 1024) return 2;
+  return 3;
 }
 
 function bindPreviewPlayerEvents(successMessage) {
@@ -508,8 +636,15 @@ function bindPreviewPlayerEvents(successMessage) {
       resolve();
     };
 
-    player.addEventListener("loadedmetadata", () => logMerge(`预览 loadedmetadata：${player.duration || "unknown"}s`), { once: true });
+    player.addEventListener("loadedmetadata", () => logMerge(`预览 loadedmetadata：${player.duration || "unknown"}s ${player.videoWidth || 0}x${player.videoHeight || 0}`), { once: true });
     player.addEventListener("canplay", () => {
+      if (!player.videoWidth || !player.videoHeight) {
+        logMerge("预览 canplay 但视频尺寸为 0，判定为不适合预览的格式");
+        setPreviewOverlay("播放失败");
+        setStatus("播放失败", "Error", "当前预览格式只有音频或浏览器不支持视频画面，请稍后重试。", 0, true);
+        settle();
+        return;
+      }
       logMerge("预览 canplay");
       clearPreviewOverlay();
       setStatus("可以播放", "Preview", successMessage, 100);
