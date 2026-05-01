@@ -26,6 +26,7 @@ let ffmpegInstance = null;
 let ffmpegModules = null;
 let previewObjectUrl = null;
 let activeMediaTask = null;
+const previewPlaybackProbe = document.createElement("video");
 
 const MEDIA_TASK_LABELS = {
   "download-video": "下载视频",
@@ -473,29 +474,37 @@ async function playPreviewVideo() {
 }
 
 function pickPreviewFormats(formats) {
-  const videoOnly = formats.filter((item) => item.hasVideo && !item.hasAudio);
-  const anyVideo = formats.filter((item) => item.hasVideo);
-  const audioOnly = formats.filter((item) => item.hasAudio && !item.hasVideo);
-  const combined = formats.filter((item) => item.hasVideo && item.hasAudio);
+  const tiers = [
+    { name: "confirmed", items: formats.filter((item) => item.formatConfidence === "confirmed") },
+    { name: "fallback", items: formats },
+  ];
 
-  const bestCombined = chooseBestPreviewCombined(combined);
-  const bestPair = chooseBestPreviewPair(videoOnly.length ? videoOnly : anyVideo, audioOnly);
+  for (const tier of tiers) {
+    if (!tier.items.length) continue;
+    const videoOnly = tier.items.filter((item) => item.hasVideo && !item.hasAudio);
+    const anyVideo = tier.items.filter((item) => item.hasVideo);
+    const audioOnly = tier.items.filter((item) => item.hasAudio && !item.hasVideo);
+    const combined = tier.items.filter((item) => item.hasVideo && item.hasAudio);
 
-  if (bestCombined && bestPair) {
-    return bestCombined.score <= bestPair.score
-      ? { video: bestCombined.format, audio: null, reason: "prefer-compatible-combined", score: bestCombined.score }
-      : { video: bestPair.video, audio: bestPair.audio, reason: "prefer-compatible-separate", score: bestPair.score };
+    const bestCombined = chooseBestPreviewCombined(combined);
+    const bestPair = chooseBestPreviewPair(videoOnly.length ? videoOnly : anyVideo, audioOnly);
+
+    if (bestCombined && bestPair) {
+      return bestCombined.score <= bestPair.score
+        ? { video: bestCombined.format, audio: null, reason: `prefer-compatible-combined-${tier.name}`, score: bestCombined.score }
+        : { video: bestPair.video, audio: bestPair.audio, reason: `prefer-compatible-separate-${tier.name}`, score: bestPair.score };
+    }
+
+    if (bestCombined) {
+      return { video: bestCombined.format, audio: null, reason: `fallback-compatible-combined-${tier.name}`, score: bestCombined.score };
+    }
+
+    if (bestPair) {
+      return { video: bestPair.video, audio: bestPair.audio, reason: `fallback-compatible-separate-${tier.name}`, score: bestPair.score };
+    }
   }
 
-  if (bestCombined) {
-    return { video: bestCombined.format, audio: null, reason: "fallback-compatible-combined", score: bestCombined.score };
-  }
-
-  if (bestPair) {
-    return { video: bestPair.video, audio: bestPair.audio, reason: "fallback-compatible-separate", score: bestPair.score };
-  }
-
-  const fallback = anyVideo.sort(compareSmallVideo)[0] || null;
+  const fallback = formats.filter((item) => item.hasVideo).sort(compareSmallVideo)[0] || null;
   return { video: fallback, audio: null, reason: "fallback-video-only", score: fallback ? previewVideoScore(fallback) : Number.MAX_SAFE_INTEGER };
 }
 
@@ -548,12 +557,15 @@ function chooseBestPreviewPair(videoFormats, audioFormats) {
 }
 
 function previewCombinedScore(format) {
-  return previewVideoScore(format) + previewAudioScore(format) - 1;
+  return previewFormatConfidencePenalty(format) + previewBrowserScore(combinedPreviewMimeType(format), "video") + previewVideoScore(format) + previewAudioScore(format) - 1;
 }
 
 function previewPairScore(video, audio) {
-  let score = previewVideoScore(video) + previewAudioScore(audio) + 1;
+  let score = previewFormatConfidencePenalty(video) + previewFormatConfidencePenalty(audio) + previewVideoScore(video) + previewAudioScore(audio) + 1;
   const outputExt = outputExtension(video, audio);
+  score += previewBrowserScore(outputPreviewMimeType(video, audio), "video");
+  score += previewBrowserScore(singleTrackMimeType(video, "video"), "video");
+  score += previewBrowserScore(singleTrackMimeType(audio, "audio"), "audio");
   if (outputExt === "mkv") score += 6;
   if (outputExt === "webm") score += 1;
   return score;
@@ -622,6 +634,75 @@ function previewFilesizeScore(format) {
   if (size <= 80 * 1024 * 1024) return 1;
   if (size <= 160 * 1024 * 1024) return 2;
   return 3;
+}
+
+function previewFormatConfidencePenalty(format) {
+  return format?.formatConfidence === "confirmed" ? 0 : 5;
+}
+
+function previewBrowserScore(mimeType, kind) {
+  if (!mimeType || typeof previewPlaybackProbe.canPlayType !== "function") return 3;
+  const support = previewPlaybackProbe.canPlayType(mimeType);
+  if (support === "probably") return 0;
+  if (support === "maybe") return 1;
+  return kind === "audio" ? 2 : 4;
+}
+
+function combinedPreviewMimeType(format) {
+  return singleTrackMimeType(format, format.hasVideo ? "video" : "audio");
+}
+
+function outputPreviewMimeType(video, audio) {
+  const ext = outputExtension(video, audio);
+  switch (ext) {
+    case "mp4":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mkv":
+      return "video/x-matroska";
+    default:
+      return `video/${ext}`;
+  }
+}
+
+function singleTrackMimeType(format, kind) {
+  const ext = String(format?.ext || "").toLowerCase();
+  if (!ext) return "";
+  if (kind === "audio") {
+    switch (ext) {
+      case "m4a":
+      case "mp4":
+        return "audio/mp4";
+      case "mp3":
+        return "audio/mpeg";
+      case "aac":
+        return "audio/aac";
+      case "webm":
+        return "audio/webm";
+      case "ogg":
+        return "audio/ogg";
+      case "wav":
+        return "audio/wav";
+      default:
+        return `audio/${ext}`;
+    }
+  }
+
+  switch (ext) {
+    case "mp4":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mov":
+      return "video/quicktime";
+    case "mkv":
+      return "video/x-matroska";
+    case "ogg":
+      return "video/ogg";
+    default:
+      return `video/${ext}`;
+  }
 }
 
 function bindPreviewPlayerEvents(successMessage) {

@@ -212,12 +212,19 @@ def compact_format(item: dict[str, Any]) -> dict[str, Any]:
     filesize = item.get("filesize") or item.get("filesize_approx")
     format_note = item.get("format_note") or item.get("resolution") or ""
     note_text = str(format_note).lower()
+    codec_audio_confirmed = acodec not in {"none", "unknown"}
+    codec_video_confirmed = vcodec not in {"none", "unknown"}
     has_audio = acodec != "none" or item.get("abr") is not None or "audio" in note_text
     has_video = vcodec != "none" or height is not None or width is not None
     if vcodec == "none" or "audio only" in note_text:
         has_video = False
     if acodec == "none" and "video only" in note_text:
         has_audio = False
+    audio_confirmed = has_audio and (codec_audio_confirmed or item.get("abr") is not None)
+    video_confirmed = has_video and (codec_video_confirmed or height is not None or width is not None)
+    format_confidence = "confirmed"
+    if (has_audio and not audio_confirmed) or (has_video and not video_confirmed):
+        format_confidence = "uncertain"
     format_type = "combined"
     if has_video and not has_audio:
         format_type = "video"
@@ -244,6 +251,9 @@ def compact_format(item: dict[str, Any]) -> dict[str, Any]:
         "protocol": item.get("protocol"),
         "hasAudio": has_audio,
         "hasVideo": has_video,
+        "audioConfirmed": audio_confirmed,
+        "videoConfirmed": video_confirmed,
+        "formatConfidence": format_confidence,
         "formatType": format_type,
         "directUrl": first_url(item.get("url")),
         "directUrls": url_list(item.get("url")),
@@ -286,6 +296,7 @@ def pick_formats(info: dict[str, Any]) -> list[dict[str, Any]]:
     audio_only = [item for item in visible if item["hasAudio"] and not item["hasVideo"]]
     visible.sort(
         key=lambda item: (
+            1 if item.get("formatConfidence") == "confirmed" else 0,
             1 if item["hasVideo"] and item["hasAudio"] else 0,
             item.get("height") or 0,
             item.get("filesize") or 0,
