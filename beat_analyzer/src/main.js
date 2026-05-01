@@ -42,7 +42,7 @@ form.addEventListener("submit", async (event) => {
   const cookieFile = cookieInput?.files?.[0] || null;
 
   setBusy(true);
-  setStatus("正在解析", "Parsing", cookieFile ? "正在使用 yt-dlp 获取视频元信息，并临时读取你上传的 Cookie 文件。" : "正在使用 yt-dlp 获取视频元信息，失败时会尝试 you-get。", 40);
+  setStatus("正在解析", "处理中", cookieFile ? "正在读取视频信息，并临时使用你上传的 Cookie 文件。" : "正在读取视频信息，请稍候。", 40);
   resetResult();
 
   try {
@@ -138,13 +138,13 @@ async function checkHealth() {
     const response = await fetch("/api/health");
     const health = await response.json();
     if (health.ok) {
-      const detail = health.ytDlpAvailable ? `${health.message}。支持可选 Cookie 文件解析，后端仅临时使用。` : "服务已启动，但 yt-dlp Python 依赖未安装。";
+      const detail = health.ytDlpAvailable ? `${health.message}。支持可选 Cookie 文件解析，Cookie 仅临时使用。` : "服务已启动，但当前部分解析能力不可用。";
       setStatus("服务就绪", "Ready", detail, 0, !health.ytDlpAvailable);
       return;
     }
     setStatus("服务异常", "Warning", health.message || "服务状态异常。", 0, true);
   } catch {
-    setStatus("后端未连接", "Offline", "未检测到解析服务，请先启动 FastAPI 后端。", 0, true);
+    setStatus("服务未连接", "离线", "未检测到解析服务，请稍后重试。", 0, true);
   }
 }
 
@@ -194,7 +194,7 @@ async function mergeSelectedVideo(selected) {
 
   try {
     logMerge("开始合并流程");
-    setStatus("准备合并", "FFmpeg", "正在加载 FFmpeg.wasm，首次加载需要下载核心文件。", 10);
+    setStatus("准备下载", "处理中", "正在准备视频和音频文件，首次使用可能需要稍等。", 10);
     const ffmpeg = await loadFfmpeg();
     logMerge("FFmpeg.wasm 已加载");
     const { outputData, outputExt } = await mergeMediaStreams(ffmpeg, selected, audio, "下载视频");
@@ -213,7 +213,7 @@ async function downloadSelectedAudio(audio) {
   if (!beginMediaTask("download-audio")) return;
 
   try {
-    setStatus("准备下载音频", "Preparing", "正在生成短期有效的音频下载地址。", 20);
+  setStatus("准备下载音频", "处理中", "正在准备音频文件。", 20);
     const payload = await requestDownload({ asset: "audio", formatId: audio.formatId }, false);
     if (!payload?.proxyUrl && !payload?.directUrl) {
       throw new Error("无法生成音频下载地址。");
@@ -231,7 +231,7 @@ async function downloadSelectedAudio(audio) {
 }
 
 async function mergeMediaStreams(ffmpeg, video, audio, labelPrefix) {
-  setStatus("FFmpeg 已加载", "FFmpeg", "正在生成音视频代理地址。", 18);
+  setStatus("准备文件", "处理中", "正在生成视频和音频下载地址。", 18);
   const videoPayload = await requestDownload({ asset: "video", formatId: video.formatId }, false);
   const audioPayload = await requestDownload({ asset: "audio", formatId: audio.formatId }, false);
   if (!videoPayload?.proxyUrl || !audioPayload?.proxyUrl) {
@@ -253,13 +253,13 @@ async function mergeMediaStreams(ffmpeg, video, audio, labelPrefix) {
   const audioName = `input-audio-${id}.${audioExt}`;
   const outputName = `merged-output-${id}.${outputExt}`;
 
-  setStatus("写入视频流", "FFmpeg", "正在把视频流写入浏览器内存文件系统。", 55);
+  setStatus("处理视频", "处理中", "正在整理视频文件。", 55);
   await ffmpeg.writeFile(videoName, videoData);
   logMerge("视频流已写入 FFmpeg 文件系统");
-  setStatus("写入音频流", "FFmpeg", "正在把音频流写入浏览器内存文件系统。", 60);
+  setStatus("处理音频", "处理中", "正在整理音频文件。", 60);
   await ffmpeg.writeFile(audioName, audioData);
   logMerge("音频流已写入 FFmpeg 文件系统");
-  setStatus("正在合并", "FFmpeg", "正在浏览器本地封装音视频，不会上传合并结果。", 65);
+  setStatus("正在合并", "处理中", "正在生成最终视频文件，不会上传你的媒体内容。", 65);
   logMerge("开始执行 FFmpeg 合并命令");
   const command = [
     "-y",
@@ -282,10 +282,10 @@ async function mergeMediaStreams(ffmpeg, video, audio, labelPrefix) {
   logMerge(`FFmpeg 命令：${command.join(" ")}`);
   const exitCode = await ffmpeg.exec(command);
   if (typeof exitCode === "number" && exitCode !== 0) {
-    throw new Error("FFmpeg 合并失败，请尝试下载原始音视频流。");
+    throw new Error("视频合并失败，请稍后重试。");
   }
 
-  setStatus("读取合并结果", "FFmpeg", "正在生成最终媒体文件。", 95);
+  setStatus("生成文件", "处理中", "正在生成最终媒体文件。", 95);
   const outputData = await ffmpeg.readFile(outputName);
   logMerge(`合并结果已生成：${formatBytes(outputData.byteLength)}`);
   await cleanupFfmpegFiles(ffmpeg, [videoName, audioName, outputName]);
@@ -312,7 +312,7 @@ async function loadFfmpeg() {
   });
   ffmpeg.on("progress", ({ progress }) => {
     if (Number.isFinite(progress)) {
-      setStatus("正在合并", "FFmpeg", "正在浏览器本地封装音视频。", 65 + Math.round(progress * 30));
+      setStatus("正在合并", "处理中", "正在生成视频文件。", 65 + Math.round(progress * 30));
     }
   });
   const baseURL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm";

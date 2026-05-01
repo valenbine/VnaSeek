@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="VNASeek视频解析是基于 yt-dlp 和 you-get 的在线视频解析下载工具，优先浏览器直连下载，必要时无落盘流式转发。"
-    />
+      <meta
+        name="description"
+        content="VNASeek视频解析支持在线视频解析、预览和下载，提供视频、音频、封面、描述和字幕等内容获取能力。"
+      />
     <title>VNASeek视频解析</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -14,15 +14,15 @@
     <main class="shell">
       <section class="hero" aria-labelledby="app-title">
         <div class="hero__content">
-          <p class="eyebrow">BeatThis! inspired · yt-dlp · you-get</p>
+          <p class="eyebrow">在线视频解析与下载</p>
           <h1 id="app-title">VNASeek视频解析</h1>
           <p class="hero__copy">
             输入视频页面地址，可选择上传 cookies.txt 或 Firefox cookies.sqlite 辅助解析。VNASeek视频解析仅在本次解析中临时使用 Cookie，不保存、不记录，大文件优先由浏览器直连源站下载。
           </p>
           <div class="hero__badges" aria-label="功能特点">
-            <span>URL Parser</span>
-            <span>Direct Download</span>
-            <span>Stream Proxy</span>
+            <span>视频解析</span>
+            <span>在线播放</span>
+            <span>下载保存</span>
           </div>
         </div>
         <div class="hero__visual" aria-hidden="true">
@@ -40,17 +40,17 @@
               <div class="beat-bar"></div>
             </div>
             <div class="beat-info">
-              <span class="beat-label">PARSE</span>
-              <span class="beat-label beat-label--downbeat">STREAM</span>
+               <span class="beat-label">VIDEO</span>
+               <span class="beat-label beat-label--downbeat">DOWNLOAD</span>
             </div>
-            <div class="bpm-display">0 MB STORED</div>
+            <div class="bpm-display">READY TO SAVE</div>
             <div class="stream-meter" aria-hidden="true">
               <span></span>
             </div>
             <div class="route-chips" aria-hidden="true">
-              <span>Direct URL</span>
-              <span>Proxy Stream</span>
-              <span>Metadata</span>
+              <span>Video</span>
+              <span>Audio</span>
+              <span>Preview</span>
             </div>
           </div>
         </div>
@@ -65,7 +65,7 @@
             </svg>
             <div>
               <h2>粘贴视频地址</h2>
-              <p>支持 yt-dlp / you-get 可解析站点。Cookie 文件仅用于本次解析，后端不会留存或写入日志。</p>
+              <p>支持常见视频页面解析。Cookie 文件仅用于本次解析，系统不会留存或写入日志。</p>
             </div>
           </div>
 
@@ -87,7 +87,7 @@
         <div class="analysis-card">
           <div class="analysis-card__topline">
             <div>
-              <p class="eyebrow">Parser Status</p>
+              <p class="eyebrow">当前状态</p>
               <h2 id="status-title">等待输入</h2>
             </div>
             <span class="status-pill" id="status-pill">Idle</span>
@@ -114,7 +114,7 @@
             </div>
             <div>
               <span class="metric" id="extractor">--</span>
-              <span class="metric-label">解析器</span>
+              <span class="metric-label">平台</span>
             </div>
           </div>
         </div>
@@ -161,6 +161,6 @@
       </section>
     </main>
 
-    <script type="module" src="./src/main.js?v=20260430-global-media-task-lock"></script>
+    <script type="module" src="./src/main.js?v=20260501-customer-facing-copy"></script>
   </body>
 </html>
