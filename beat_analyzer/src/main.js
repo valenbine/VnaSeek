@@ -388,7 +388,7 @@ function renderResult(result) {
       ` : `<div class="video-preview__placeholder">无可用封面</div>`}
     </div>
     <div class="video-preview__body">
-      <p class="eyebrow">${escapeHtml(result.extractor || "parser")}</p>
+      <p class="eyebrow">${escapeHtml(result.extractor || "解析工具")}</p>
       <h3>${escapeHtml(result.title || "未命名视频")}</h3>
       <p>${escapeHtml(result.uploader || "--")} · ${escapeHtml(result.durationText || "--")}</p>
       <p class="video-description">${escapeHtml(truncate(result.description || "暂无描述", 180))}</p>
