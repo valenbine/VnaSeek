@@ -1,0 +1,75 @@
+name: Build Windows Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+      - "260429-feat-video-parser-downloader"
+    paths:
+      - "desktop/**"
+      - "beat_analyzer/**"
+      - ".github/workflows/build-windows-desktop.yml"
+
+jobs:
+  build-windows-desktop:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: desktop
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package.json
+
+      - name: Setup build Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install desktop dependencies
+        run: npm install
+
+      - name: Prepare desktop resources
+        run: npm run desktop:prepare
+
+      - name: Install backend Python dependencies into bundle
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --target ./resources/backend-deps -r ../beat_analyzer/requirements.txt
+
+      - name: Download embedded Python runtime
+        run: |
+          $version = "3.11.9"
+          $url = "https://www.python.org/ftp/python/$version/python-$version-embed-amd64.zip"
+          $zipPath = Join-Path $env:RUNNER_TEMP "python-embed.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zipPath
+          if (Test-Path ./resources/python) {
+            Remove-Item -Recurse -Force ./resources/python
+          }
+          Expand-Archive -Path $zipPath -DestinationPath ./resources/python
+
+      - name: Verify bundled launcher files
+        run: |
+          if (!(Test-Path ./resources/launch_backend.py)) { throw "launch_backend.py missing" }
+          if (!(Test-Path ./resources/backend/backend.py)) { throw "bundled backend.py missing" }
+          if (!(Test-Path ./resources/python/python.exe)) { throw "embedded python missing" }
+
+      - name: Build Windows installer
+        run: npm run desktop:build
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vnaseek-windows-desktop
+          path: desktop/release/**/*
