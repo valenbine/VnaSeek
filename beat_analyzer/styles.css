@@ -320,6 +320,44 @@ h3 {
   margin-top: 48px;
 }
 
+.site-footer {
+  display: grid;
+  gap: 12px;
+  margin-top: 40px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+  backdrop-filter: blur(18px);
+}
+
+.site-footer__title {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.site-footer__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.site-footer__meta a {
+  color: #dbe4f6;
+  text-decoration: none;
+}
+
+.site-footer__meta a:hover {
+  color: var(--accent-strong);
+}
+
 .upload-card,
 .analysis-card,
 .visualizer-card,
@@ -997,6 +1035,15 @@ button:disabled {
 
   .timeline-actions {
     flex-direction: column;
+  }
+
+  .site-footer {
+    padding: 18px;
+  }
+
+  .site-footer__meta {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 

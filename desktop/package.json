@@ -1,0 +1,65 @@
+{
+  "name": "vnaseek-desktop",
+  "version": "0.1.0",
+  "description": "Windows desktop packaging for VNASeek video parser",
+  "private": true,
+  "type": "module",
+  "author": "猫仙森MR CAT <valenbine@163.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/valenbine/VnaSeek.git"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "desktop:dev": "electron .",
+    "desktop:prepare": "node ./scripts/prepare-desktop-resources.mjs",
+    "desktop:icons": "tauri icon ./icons/app-icon.svg",
+    "desktop:build": "electron-builder --win nsis --publish never",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.valenbine.vnaseek.electron",
+    "productName": "VNASeek视频解析",
+    "artifactName": "VNASeek-Setup-${version}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "src-tauri/icons"
+    },
+    "files": [
+      "app/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "src-tauri/icons/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "src-tauri/icons/icon.ico",
+      "uninstallerIcon": "src-tauri/icons/icon.ico"
+    }
+  }
+}
