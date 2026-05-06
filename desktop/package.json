@@ -1,14 +1,20 @@
 {
   "name": "vnaseek-desktop",
   "version": "0.1.0",
+  "description": "Windows desktop packaging for VNASeek video parser",
   "private": true,
   "type": "module",
+  "author": "猫仙森MR CAT <valenbine@163.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/valenbine/VnaSeek.git"
+  },
   "main": "electron/main.js",
   "scripts": {
     "desktop:dev": "electron .",
     "desktop:prepare": "node ./scripts/prepare-desktop-resources.mjs",
     "desktop:icons": "tauri icon ./icons/app-icon.svg",
-    "desktop:build": "electron-builder --win nsis",
+    "desktop:build": "electron-builder --win nsis --publish never",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },
