@@ -26,6 +26,7 @@
   "build": {
     "appId": "com.valenbine.vnaseek.electron",
     "productName": "VNASeek视频解析",
+    "artifactName": "VNASeek-Setup-${version}.${ext}",
     "directories": {
       "output": "release",
       "buildResources": "src-tauri/icons"

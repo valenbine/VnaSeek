@@ -162,3 +162,5 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - Release 资产上传在 Windows runner 上应逐文件执行 `gh release upload`，避免命令参数过长导致 `gh.exe` 启动失败。
   - `desktop/release/` 目录中的 `win-unpacked` 与嵌入 Python 资源不应作为 GitHub Release 资产上传。
   - GitHub Release 仅上传 Windows 安装器 `.exe` 与其 `.blockmap`，重跑发布前应先删除该 Release 下的旧资产，避免历史错误文件残留。
+  - Windows 安装器文件名统一使用 `VNASeek-Setup-${version}.${ext}`。
+  - Release workflow 构建前应从 tag 中提取版本号（如 `v0.0.2` -> `0.0.2`）并临时写入 `desktop/package.json`，让安装器版本与 release tag 保持一致。

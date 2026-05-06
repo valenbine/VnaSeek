@@ -71,6 +71,16 @@ jobs:
       - name: Install desktop dependencies
         run: npm install
 
+      - name: Sync desktop version from release tag
+        run: |
+          $tag = "${{ steps.release_meta.outputs.release_tag }}"
+          $version = $tag -replace '^v', ''
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Resolved release version is empty"
+          }
+
+          npm pkg set version=$version
+
       - name: Generate desktop icons
         run: npm run desktop:icons
 
@@ -114,7 +124,7 @@ jobs:
           }
 
           $files = Get-ChildItem -Path ./release -File | Where-Object {
-            ($_.Name -like '* Setup *.exe' -and $_.Name -notlike '*.__uninstaller.exe') -or $_.Name -like '*.exe.blockmap'
+            $_.Name -like 'VNASeek-Setup-*.exe' -or $_.Name -like 'VNASeek-Setup-*.exe.blockmap'
           } | ForEach-Object { $_.FullName }
           if ($files.Count -eq 0) {
             throw "No release files generated"
