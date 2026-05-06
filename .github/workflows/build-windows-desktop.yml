@@ -76,12 +76,9 @@ jobs:
         run: npm run desktop:build
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: vnaseek-windows-desktop
           path: |
             desktop/release/*.exe
             desktop/release/*.blockmap
-            desktop/release/*.yml
-            desktop/release/*.yaml
-            desktop/release/*.zip

@@ -106,8 +106,15 @@ jobs:
       - name: Upload assets to GitHub release
         run: |
           $tag = "${{ steps.release_meta.outputs.release_tag }}"
+          $existingAssets = gh release view $tag --json assets --jq '.assets[].name'
+          foreach ($asset in $existingAssets) {
+            if (![string]::IsNullOrWhiteSpace($asset)) {
+              & gh release delete-asset $tag $asset --yes
+            }
+          }
+
           $files = Get-ChildItem -Path ./release -File | Where-Object {
-            $_.Extension -in @('.exe', '.blockmap', '.yml', '.yaml', '.zip')
+            ($_.Name -like '* Setup *.exe' -and $_.Name -notlike '*.__uninstaller.exe') -or $_.Name -like '*.exe.blockmap'
           } | ForEach-Object { $_.FullName }
           if ($files.Count -eq 0) {
             throw "No release files generated"

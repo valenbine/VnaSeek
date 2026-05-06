@@ -158,6 +158,7 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Context: Agent 在修复 Node 24 兼容与 Release 上传问题时发现
 - Category: 构建方法
 - Instructions:
-  - 桌面打包相关工作流优先使用支持 Node 24 的 action 大版本，如 `actions/checkout@v5`、`actions/setup-node@v5`、`actions/setup-python@v6`、`actions/upload-artifact@v5`。
+  - 桌面打包相关工作流优先使用支持 Node 24 的 action 大版本，如 `actions/checkout@v5`、`actions/setup-node@v5`、`actions/setup-python@v6`、`actions/upload-artifact@v7`。
   - Release 资产上传在 Windows runner 上应逐文件执行 `gh release upload`，避免命令参数过长导致 `gh.exe` 启动失败。
-  - `desktop/release/` 目录中的 `win-unpacked` 与嵌入 Python 资源不应作为 GitHub Release 资产上传，只上传根目录正式产物，如 `.exe`、`.blockmap`、`.yml`、`.yaml`、`.zip`。
+  - `desktop/release/` 目录中的 `win-unpacked` 与嵌入 Python 资源不应作为 GitHub Release 资产上传。
+  - GitHub Release 仅上传 Windows 安装器 `.exe` 与其 `.blockmap`，重跑发布前应先删除该 Release 下的旧资产，避免历史错误文件残留。
