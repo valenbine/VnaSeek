@@ -152,3 +152,11 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 新建 Release 时应自动打包 Windows 桌面版并上传到该 Release。
   - 手动执行工作流时必须填写 `tag`。
   - 手动执行后应自动创建对应 tag 的 Release，并把生成的 Windows 包上传到该 Release。
+
+[GitHub Actions 桌面打包兼容性约定]
+- Date: 2026-05-06
+- Context: Agent 在修复 Node 24 兼容与 Release 上传问题时发现
+- Category: 构建方法
+- Instructions:
+  - 桌面打包相关工作流优先使用支持 Node 24 的 action 大版本，如 `actions/checkout@v5`、`actions/setup-node@v5`、`actions/setup-python@v6`、`actions/upload-artifact@v5`。
+  - Release 资产上传在 Windows runner 上应逐文件执行 `gh release upload`，避免命令参数过长导致 `gh.exe` 启动失败。

@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve release tag
         id: release_meta
@@ -57,14 +57,14 @@ jobs:
           gh release create $tag --target "${{ github.sha }}" --title $tag --notes "Automated Windows desktop release for $tag"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: desktop/package.json
 
       - name: Setup build Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -111,4 +111,6 @@ jobs:
             throw "No release files generated"
           }
 
-          & gh release upload $tag $files --clobber
+          foreach ($file in $files) {
+            & gh release upload $tag $file --clobber
+          }
