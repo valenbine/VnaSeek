@@ -164,3 +164,12 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - GitHub Release 仅上传 Windows 安装器 `.exe` 与其 `.blockmap`，重跑发布前应先删除该 Release 下的旧资产，避免历史错误文件残留。
   - Windows 安装器文件名统一使用 `VNASeek-Setup-${version}.${ext}`。
   - Release workflow 构建前应从 tag 中提取版本号（如 `v0.0.2` -> `0.0.2`）并临时写入 `desktop/package.json`，让安装器版本与 release tag 保持一致。
+
+[Electron Windows 后端隐藏启动约定]
+- Date: 2026-05-06
+- Context: Agent 在修复桌面版启动时弹出 Python 控制台窗口时发现
+- Category: 代码模式
+- Instructions:
+  - `desktop/electron/main.js` 在 Windows 打包态下启动后端时，需要使用 `windowsHide: true` 隐藏控制台窗口。
+  - Windows 打包态后端进程应使用 `stdio: "ignore"`，避免继承控制台导致额外命令行窗口弹出。
+  - 开发态继续保留 `stdio: "inherit"`，便于本地调试查看后端日志。

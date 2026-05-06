@@ -52,10 +52,16 @@ function resolveBackendCommand() {
 
 function startBackend() {
   const command = resolveBackendCommand();
+  const hideConsoleWindow = process.platform === "win32" && app.isPackaged;
   backendProcess = spawn(command.program, command.args, {
     cwd: command.cwd,
-    stdio: "inherit"
+    stdio: hideConsoleWindow ? "ignore" : "inherit",
+    windowsHide: hideConsoleWindow
   });
+
+  if (hideConsoleWindow) {
+    backendProcess.unref();
+  }
 
   backendProcess.on("exit", (code, signal) => {
     backendProcess = null;
