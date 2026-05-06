@@ -144,3 +144,11 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - Windows 安装包构建命令为 `npm run desktop:build`。
   - `electron-builder` 使用 `nsis.oneClick=false` 和 `allowToChangeInstallationDirectory=true`，安装时允许用户选择安装路径。
   - `desktop:build` 不应重复执行 `desktop:prepare`，避免覆盖 CI 里已安装好的 `resources/backend-deps`。
+
+[Windows Release 自动发布工作流要求]
+- Date: 2026-05-06
+- Context: 用户要求新增 Release 自动打包与手动输入 tag 创建 Release 的工作流
+- Instructions:
+  - 新建 Release 时应自动打包 Windows 桌面版并上传到该 Release。
+  - 手动执行工作流时必须填写 `tag`。
+  - 手动执行后应自动创建对应 tag 的 Release，并把生成的 Windows 包上传到该 Release。
