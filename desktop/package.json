@@ -22,7 +22,7 @@
     "productName": "VNASeek视频解析",
     "directories": {
       "output": "release",
-      "buildResources": "icons"
+      "buildResources": "src-tauri/icons"
     },
     "files": [
       "app/**/*",
@@ -39,7 +39,7 @@
       }
     ],
     "win": {
-      "icon": "icons/icon.ico",
+      "icon": "src-tauri/icons/icon.ico",
       "target": [
         "nsis"
       ]
@@ -51,8 +51,8 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "installerIcon": "icons/icon.ico",
-      "uninstallerIcon": "icons/icon.ico"
+      "installerIcon": "src-tauri/icons/icon.ico",
+      "uninstallerIcon": "src-tauri/icons/icon.ico"
     }
   }
 }

@@ -67,7 +67,7 @@ jobs:
           if (!(Test-Path ./resources/launch_backend.py)) { throw "launch_backend.py missing" }
           if (!(Test-Path ./resources/backend/backend.py)) { throw "bundled backend.py missing" }
           if (!(Test-Path ./resources/python/python.exe)) { throw "embedded python missing" }
-          if (!(Test-Path ./icons/icon.ico)) { throw "desktop icon missing" }
+          if (!(Test-Path ./src-tauri/icons/icon.ico)) { throw "desktop icon missing" }
 
       - name: Build Windows installer
         run: npm run desktop:build

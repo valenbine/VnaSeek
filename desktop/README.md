@@ -84,7 +84,7 @@ http://127.0.0.1:5000/
 
 1. `electron/main.js` 负责拉起后端并打开桌面窗口。
 2. 开发态运行 `npm run desktop:dev`。
-3. 打包前运行 `npm run desktop:icons` 生成 `icon.ico` 和桌面图标资源。
+3. 打包前运行 `npm run desktop:icons` 生成 `src-tauri/icons/icon.ico` 和桌面图标资源。
 4. 打包前运行 `npm run desktop:prepare`，把 `beat_analyzer` 复制到 `desktop/resources/backend/`。
 5. 将 Python 依赖安装到 `desktop/resources/backend-deps/`，并放入嵌入式 Python 到 `desktop/resources/python/`。
 6. Windows 打包使用 `electron-builder` 的 `nsis` 目标。
