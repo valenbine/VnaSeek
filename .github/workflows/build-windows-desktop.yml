@@ -79,4 +79,9 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: vnaseek-windows-desktop
-          path: desktop/release/**/*
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.blockmap
+            desktop/release/*.yml
+            desktop/release/*.yaml
+            desktop/release/*.zip

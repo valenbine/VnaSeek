@@ -160,3 +160,4 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 桌面打包相关工作流优先使用支持 Node 24 的 action 大版本，如 `actions/checkout@v5`、`actions/setup-node@v5`、`actions/setup-python@v6`、`actions/upload-artifact@v5`。
   - Release 资产上传在 Windows runner 上应逐文件执行 `gh release upload`，避免命令参数过长导致 `gh.exe` 启动失败。
+  - `desktop/release/` 目录中的 `win-unpacked` 与嵌入 Python 资源不应作为 GitHub Release 资产上传，只上传根目录正式产物，如 `.exe`、`.blockmap`、`.yml`、`.yaml`、`.zip`。

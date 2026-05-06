@@ -106,7 +106,9 @@ jobs:
       - name: Upload assets to GitHub release
         run: |
           $tag = "${{ steps.release_meta.outputs.release_tag }}"
-          $files = Get-ChildItem -Path ./release -File -Recurse | ForEach-Object { $_.FullName }
+          $files = Get-ChildItem -Path ./release -File | Where-Object {
+            $_.Extension -in @('.exe', '.blockmap', '.yml', '.yaml', '.zip')
+          } | ForEach-Object { $_.FullName }
           if ($files.Count -eq 0) {
             throw "No release files generated"
           }
