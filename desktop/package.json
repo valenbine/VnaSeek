@@ -7,6 +7,7 @@
   "scripts": {
     "desktop:dev": "electron .",
     "desktop:prepare": "node ./scripts/prepare-desktop-resources.mjs",
+    "desktop:icons": "tauri icon ./icons/app-icon.svg",
     "desktop:build": "electron-builder --win nsis",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
@@ -20,7 +21,8 @@
     "appId": "com.valenbine.vnaseek.electron",
     "productName": "VNASeek视频解析",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "icons"
     },
     "files": [
       "app/**/*",
@@ -37,6 +39,7 @@
       }
     ],
     "win": {
+      "icon": "icons/icon.ico",
       "target": [
         "nsis"
       ]
@@ -47,7 +50,9 @@
       "allowElevation": true,
       "perMachine": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerIcon": "icons/icon.ico",
+      "uninstallerIcon": "icons/icon.ico"
     }
   }
 }

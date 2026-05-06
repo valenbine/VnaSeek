@@ -84,16 +84,17 @@ http://127.0.0.1:5000/
 
 1. `electron/main.js` 负责拉起后端并打开桌面窗口。
 2. 开发态运行 `npm run desktop:dev`。
-3. 打包前运行 `npm run desktop:prepare`，把 `beat_analyzer` 复制到 `desktop/resources/backend/`。
-4. 将 Python 依赖安装到 `desktop/resources/backend-deps/`，并放入嵌入式 Python 到 `desktop/resources/python/`。
-5. Windows 打包使用 `electron-builder` 的 `nsis` 目标。
-5. `nsis.oneClick=false` 且 `allowToChangeInstallationDirectory=true`，安装时可手动选择安装路径。
+3. 打包前运行 `npm run desktop:icons` 生成 `icon.ico` 和桌面图标资源。
+4. 打包前运行 `npm run desktop:prepare`，把 `beat_analyzer` 复制到 `desktop/resources/backend/`。
+5. 将 Python 依赖安装到 `desktop/resources/backend-deps/`，并放入嵌入式 Python 到 `desktop/resources/python/`。
+6. Windows 打包使用 `electron-builder` 的 `nsis` 目标。
+7. `nsis.oneClick=false` 且 `allowToChangeInstallationDirectory=true`，安装时可手动选择安装路径。
 
 ## 后续建议
 
 1. 先执行 `npm install` 安装 Electron 与打包依赖。
 2. 执行 `npm run desktop:dev` 验证桌面壳是否可打开。
-3. 执行 `npm run desktop:prepare` 生成发布态后端资源目录。
-4. 将依赖安装进 `resources/backend-deps/` 并准备 `resources/python/`。
-5. 执行 `npm run desktop:build` 生成 Windows NSIS 安装包。
-6. 后续再把正式图标接入资源目录。
+3. 执行 `npm run desktop:icons` 生成正式图标资源。
+4. 执行 `npm run desktop:prepare` 生成发布态后端资源目录。
+5. 将依赖安装进 `resources/backend-deps/` 并准备 `resources/python/`。
+6. 执行 `npm run desktop:build` 生成 Windows NSIS 安装包。

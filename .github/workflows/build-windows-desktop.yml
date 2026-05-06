@@ -40,6 +40,9 @@ jobs:
       - name: Install desktop dependencies
         run: npm install
 
+      - name: Generate desktop icons
+        run: npm run desktop:icons
+
       - name: Prepare desktop resources
         run: npm run desktop:prepare
 
@@ -64,6 +67,7 @@ jobs:
           if (!(Test-Path ./resources/launch_backend.py)) { throw "launch_backend.py missing" }
           if (!(Test-Path ./resources/backend/backend.py)) { throw "bundled backend.py missing" }
           if (!(Test-Path ./resources/python/python.exe)) { throw "embedded python missing" }
+          if (!(Test-Path ./icons/icon.ico)) { throw "desktop icon missing" }
 
       - name: Build Windows installer
         run: npm run desktop:build
